@@ -212,6 +212,12 @@
   }
   .dropdown-trigger:hover{ border-color:var(--cyan); }
   .dropdown-trigger.has-selection{ border-color:var(--cyan); background:var(--cyan-dim); color:#046484; }
+  .dropdown-trigger.form-style{
+    width:100%; justify-content:space-between; font-size:14px; font-weight:500; color:var(--ink);
+    padding:10px 12px; background:#fbfcfc;
+  }
+  .dropdown-trigger.form-style span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; }
+  .dropdown-trigger.form-style.has-selection{ font-weight:600; }
   .dropdown-trigger svg{ transition:transform .15s; color:var(--ink-soft); flex-shrink:0; }
   .dropdown-trigger.open svg{ transform:rotate(180deg); }
   .dd-count{
@@ -774,7 +780,13 @@ service cloud.firestore {
 
       <div class="field" id="specialtyField">
         <label>Specialty *</label>
-        <div class="check-grid" id="f_specialty"></div>
+        <div class="dropdown-filter" style="width:100%;">
+          <button type="button" class="dropdown-trigger form-style" id="specialtyTrigger" onclick="toggleFormDropdown('specialty')">
+            <span id="specialtyTriggerText">Select specialty…</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel full-width" id="specialtyPanel"></div>
+        </div>
       </div>
 
       <div class="form-row">
@@ -826,7 +838,15 @@ service cloud.firestore {
       <div class="hint">Pre-filled based on level — check or uncheck to customize per person.</div>
 
       <div class="section-label">Products represented</div>
-      <div class="check-grid" id="f_products"></div>
+      <div class="field">
+        <div class="dropdown-filter" style="width:100%;">
+          <button type="button" class="dropdown-trigger form-style" id="productsTrigger" onclick="toggleFormDropdown('products')">
+            <span id="productsTriggerText">Select products…</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel full-width" id="productsPanel"></div>
+        </div>
+      </div>
 
       <div class="section-label">Pipeline status</div>
       <div class="seg-group" id="f_status"></div>
@@ -910,7 +930,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc,
-  doc, setDoc, serverTimestamp, query, orderBy
+  doc, setDoc, deleteField, serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const isConfigured = firebaseConfig.apiKey !== "REPLACE_ME" && !firebaseConfig.apiKey.includes("REPLACE");
@@ -926,7 +946,7 @@ if (isConfigured) {
 
 /* ---------------------------- Constants ---------------------------- */
 const TYPES = ["Dentist", "RDH"];
-const SPECIALTIES = ["General Dentist","Orthodontist","Oral and Maxillofacial Surgeon","Periodontist","Endodontist","Pediatric Dentist","Prosthodontist","Implantologist"];
+const SPECIALTIES = ["General Dentist","Orthodontist","Oral and Maxillofacial Surgeon","Periodontist","Endodontist","Pediatric Dentist","Prosthodontist","Implantologist","Cosmetic Dentist"];
 const PRODUCTS = ["Optima","Cameras","Opus","Newtron","Cube","XM-Lite","Other / General"];
 const LEVELS = ["Main","Local Advocate","Candidate"];
 // Old level values that need to be migrated to the current LEVELS list — the two-tier
@@ -2102,6 +2122,11 @@ async function updateKolField(id, field, value) {
       const location = field === "location" ? value : (k ? k.location : "");
       const country = field === "country" ? value : (k ? k.country : "");
       payload.region = deriveRegion(location, country);
+      // Clear the cached map coordinates so the background geocoder re-queues this KOL —
+      // otherwise an edited location would never move on the map (see queueMissingGeo).
+      payload.geoLat = deleteField();
+      payload.geoLng = deleteField();
+      payload.geoSource = deleteField();
     }
     await updateDoc(doc(db, "kols", id), payload);
   } catch (e) {
@@ -2554,37 +2579,63 @@ window.toggleCap = (e, key) => {
   renderCapabilityPills();
 };
 
-function renderProductPills() {
-  const el = document.getElementById("f_products");
-  el.innerHTML = PRODUCTS.map(p => {
-    const on = formState.products.includes(p);
-    return `<label class="check-pill ${on?'on':''}" onclick="toggleProduct(event,'${jsAttr(p)}')">
-      <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation()" onchange="toggleProduct(event,'${jsAttr(p)}')" />
-      ${escapeHtml(p)}
+/* ---------------------------- Form multi-select dropdowns (Specialty, Products) ----------------------------
+   Compact, closed-by-default checklist dropdowns — same interaction pattern as the toolbar
+   filter dropdowns and the Acteon Contact field, instead of a wall of always-visible pills. */
+const FORM_MULTISELECT = {
+  specialty: { options: () => SPECIALTIES, stateKey: "specialties", triggerId: "specialtyTrigger", textId: "specialtyTriggerText", panelId: "specialtyPanel", placeholder: "Select specialty…" },
+  products:  { options: () => PRODUCTS,    stateKey: "products",    triggerId: "productsTrigger",  textId: "productsTriggerText",  panelId: "productsPanel",  placeholder: "Select products…" },
+};
+let openFormDropdown = null;
+
+function renderFormMultiSelect(key) {
+  const cfg = FORM_MULTISELECT[key];
+  const selected = formState[cfg.stateKey] || [];
+  document.getElementById(cfg.textId).textContent = selected.length ? selected.join(", ") : cfg.placeholder;
+  document.getElementById(cfg.triggerId).classList.toggle("has-selection", selected.length > 0);
+  document.getElementById(cfg.panelId).innerHTML = cfg.options().map(opt => {
+    const on = selected.includes(opt);
+    return `<label class="dd-option" onclick="event.stopPropagation()">
+      <input type="checkbox" ${on?'checked':''} onchange="toggleFormMultiSelectValue('${key}','${jsAttr(opt)}')" />
+      ${escapeHtml(opt)}
     </label>`;
   }).join("");
 }
-window.toggleProduct = (e, p) => {
-  const idx = formState.products.indexOf(p);
-  if (idx>-1) formState.products.splice(idx,1); else formState.products.push(p);
-  renderProductPills();
+
+window.toggleFormDropdown = (key) => {
+  const cfg = FORM_MULTISELECT[key];
+  const panel = document.getElementById(cfg.panelId);
+  const trigger = document.getElementById(cfg.triggerId);
+  const isOpen = panel.classList.contains("open");
+  Object.values(FORM_MULTISELECT).forEach(c => {
+    document.getElementById(c.panelId).classList.remove("open");
+    document.getElementById(c.triggerId).classList.remove("open");
+  });
+  if (!isOpen) {
+    panel.classList.add("open");
+    trigger.classList.add("open");
+    openFormDropdown = key;
+  } else {
+    openFormDropdown = null;
+  }
 };
 
-function renderSpecialtyPills() {
-  const el = document.getElementById("f_specialty");
-  el.innerHTML = SPECIALTIES.map(s => {
-    const on = formState.specialties.includes(s);
-    return `<label class="check-pill ${on?'on':''}" onclick="toggleSpecialty(event,'${jsAttr(s)}')">
-      <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation()" onchange="toggleSpecialty(event,'${jsAttr(s)}')" />
-      ${escapeHtml(s)}
-    </label>`;
-  }).join("");
-}
-window.toggleSpecialty = (e, s) => {
-  const idx = formState.specialties.indexOf(s);
-  if (idx>-1) formState.specialties.splice(idx,1); else formState.specialties.push(s);
-  renderSpecialtyPills();
+window.toggleFormMultiSelectValue = (key, val) => {
+  const cfg = FORM_MULTISELECT[key];
+  const arr = formState[cfg.stateKey];
+  const idx = arr.indexOf(val);
+  if (idx > -1) arr.splice(idx, 1); else arr.push(val);
+  renderFormMultiSelect(key);
 };
+
+document.addEventListener("click", (e) => {
+  if (openFormDropdown && !e.target.closest(".dropdown-filter")) {
+    const cfg = FORM_MULTISELECT[openFormDropdown];
+    document.getElementById(cfg.panelId).classList.remove("open");
+    document.getElementById(cfg.triggerId).classList.remove("open");
+    openFormDropdown = null;
+  }
+});
 
 function populateCountrySelect() {
   document.getElementById("f_country").innerHTML = `<option value="">— Select —</option>` + COUNTRIES.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
@@ -2599,14 +2650,14 @@ window.openAddModal = () => {
   // owner; the field stays fully editable if someone else should be set instead.
   const self = currentUser && matchEmployeeByEmail(currentUser.email);
   document.getElementById("f_primaryRep").value = self ? self.name : (currentUser ? (currentUser.displayName || "") : "");
-  renderSpecialtyPills();
+  renderFormMultiSelect("specialty");
   populateCountrySelect();
   document.getElementById("f_country").value = "";
   document.getElementById("f_type").innerHTML = segGroupHtml("f_type", TYPES, formState.type);
   document.getElementById("f_level").innerHTML = segGroupHtml("f_level", LEVELS, formState.level);
   document.getElementById("f_status").innerHTML = segGroupHtml("f_status", STATUS_OPTIONS, formState.status);
   renderCapabilityPills();
-  renderProductPills();
+  renderFormMultiSelect("products");
   toggleSpecialtyVisibility();
   Object.entries(FLAG_FIELD_IDS).forEach(([, ids]) => {
     document.getElementById(ids.input).checked = false;
@@ -2618,6 +2669,11 @@ window.openAddModal = () => {
   document.getElementById("docStatus").textContent = "";
   document.getElementById("primaryRepError").style.display = "none";
   document.getElementById("primaryRepPanel").classList.remove("open");
+  openFormDropdown = null;
+  Object.values(FORM_MULTISELECT).forEach(c => {
+    document.getElementById(c.panelId).classList.remove("open");
+    document.getElementById(c.triggerId).classList.remove("open");
+  });
   updatePhotoPreview();
   renderDocPreview();
   showKolModal();
@@ -2752,13 +2808,13 @@ window.openEditModal = (id) => {
   document.getElementById("f_instagram").value = k.instagram || "";
   document.getElementById("f_facebook").value = k.facebook || "";
   document.getElementById("f_website").value = k.website || "";
-  renderSpecialtyPills();
+  renderFormMultiSelect("specialty");
   document.getElementById("f_primaryRep").value = k.primaryRep || "";
   document.getElementById("f_type").innerHTML = segGroupHtml("f_type", TYPES, formState.type);
   document.getElementById("f_level").innerHTML = segGroupHtml("f_level", LEVELS, formState.level);
   document.getElementById("f_status").innerHTML = segGroupHtml("f_status", STATUS_OPTIONS, formState.status);
   renderCapabilityPills();
-  renderProductPills();
+  renderFormMultiSelect("products");
   toggleSpecialtyVisibility();
   Object.entries(FLAG_FIELD_IDS).forEach(([key, ids]) => {
     document.getElementById(ids.input).checked = formState[key];
@@ -2776,6 +2832,11 @@ window.openEditModal = (id) => {
   document.getElementById("docStatus").textContent = "";
   document.getElementById("primaryRepError").style.display = "none";
   document.getElementById("primaryRepPanel").classList.remove("open");
+  openFormDropdown = null;
+  Object.values(FORM_MULTISELECT).forEach(c => {
+    document.getElementById(c.panelId).classList.remove("open");
+    document.getElementById(c.triggerId).classList.remove("open");
+  });
   updatePhotoPreview();
   renderDocPreview();
   showKolModal();
@@ -2912,13 +2973,21 @@ window.saveKol = async () => {
     facebook: document.getElementById("f_facebook").value.trim(),
     website: document.getElementById("f_website").value.trim(),
   };
+  const existingForEdit = editingId ? allKols.find(x => x.id === editingId) : null;
   // Adding/changing a KOL to Main KOL requires sign-off; an already-approved Main KOL
   // stays approved on unrelated edits, but a fresh Main KOL selection goes back to pending.
   if (formState.level === "Main") {
-    const existing = editingId ? allKols.find(x => x.id === editingId) : null;
-    payload.mainKolApprovalStatus = (existing && existing.mainKolApprovalStatus === "approved") ? "approved" : "pending";
+    payload.mainKolApprovalStatus = (existingForEdit && existingForEdit.mainKolApprovalStatus === "approved") ? "approved" : "pending";
   } else {
     payload.mainKolApprovalStatus = "";
+  }
+  // Clear the cached map coordinates when Location/Country actually changed, so the
+  // background geocoder re-queues this KOL — otherwise an edited location would never
+  // move on the map (see queueMissingGeo).
+  if (existingForEdit && (existingForEdit.location !== payload.location || existingForEdit.country !== payload.country)) {
+    payload.geoLat = deleteField();
+    payload.geoLng = deleteField();
+    payload.geoSource = deleteField();
   }
   try {
     if (editingId) {
