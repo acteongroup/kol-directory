@@ -1,0 +1,2959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+<title>Acteon KOL Network</title>
+<link rel="icon" type="image/png" href="ACTEON-MARK-ONLY.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<!-- Map view: Leaflet + marker clustering, both free/no-API-key. Tiles are OpenStreetMap. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<style>
+  :root{
+    --navy:#0E2A3A;
+    --navy-light:#173C51;
+    --cyan:#00B0DB;
+    --cyan-dim:#E3F7FC;
+    --gold:#C9973B;
+    --gold-dim:#FBF2E2;
+    --bg:#F4F6F7;
+    --card:#FFFFFF;
+    --ink:#101E27;
+    --ink-soft:#5B7080;
+    --line:#E3E9EC;
+    --danger:#C24A3F;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(14,42,58,.06), 0 8px 24px -12px rgba(14,42,58,.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0; width:100%; overflow-x:hidden;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{ font-family:'Fraunces',serif; }
+  ::selection{ background:var(--cyan); color:#fff; }
+
+  /* ---------- Setup / Auth screens ---------- */
+  .center-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:
+      radial-gradient(1200px 600px at 10% -10%, #123A50 0%, transparent 60%),
+      var(--navy);
+  }
+  .setup-card{
+    max-width:640px; width:100%; background:#fff; border-radius:18px; padding:36px 40px;
+    box-shadow:var(--shadow);
+  }
+  .setup-card h1{ font-size:24px; margin:0 0 6px; color:var(--navy); }
+  .setup-card p{ color:var(--ink-soft); line-height:1.55; font-size:14.5px; }
+  .setup-card pre{
+    background:var(--navy); color:#BFE9F5; padding:16px; border-radius:10px; font-size:12.5px;
+    overflow-x:auto; line-height:1.6;
+  }
+  .setup-card ol{ padding-left:20px; color:var(--ink-soft); font-size:14.5px; line-height:1.8;}
+  .setup-card code{ background:var(--cyan-dim); color:#046484; padding:1px 6px; border-radius:4px; font-size:12.5px;}
+
+  .auth-card{
+    max-width:400px; width:100%; background:#fff; border-radius:18px; padding:38px 36px;
+    box-shadow:var(--shadow);
+  }
+  .auth-brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+  .auth-brand .mark{
+    width:38px;height:38px;border-radius:10px;background:#fff;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;
+    overflow:hidden;
+  }
+  .auth-brand .mark img{ width:100%; height:100%; object-fit:contain; padding:6px; }
+  .auth-brand div{ line-height:1.25; }
+  .auth-brand .t1{ font-weight:800; font-size:15px; color:var(--navy); }
+  .auth-brand .t2{ font-size:12px; color:var(--ink-soft); }
+  .auth-card h2{ font-size:20px; margin:0 0 4px; color:var(--navy); }
+  .auth-card .sub{ color:var(--ink-soft); font-size:13.5px; margin-bottom:22px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--navy); margin-bottom:6px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:9px; font-size:14px;
+    font-family:inherit; background:#fbfcfc; transition:border-color .15s, background .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--cyan); background:#fff;
+  }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:11px 18px; border-radius:9px; border:none; font-family:inherit; font-weight:600; font-size:14px;
+    cursor:pointer; transition:transform .1s, opacity .15s, box-shadow .15s;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn-primary{ background:var(--navy); color:#fff; width:100%; }
+  .btn-primary:hover{ background:var(--navy-light); }
+  .btn-cyan{ background:var(--cyan); color:#fff; }
+  .btn-cyan:hover{ opacity:.9; }
+  .btn-ghost{ background:transparent; color:var(--navy); border:1.5px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--cyan); color:var(--cyan); }
+  .btn-text{ background:none; border:none; color:var(--cyan); font-weight:600; font-size:13.5px; cursor:pointer; padding:0;}
+  .auth-toggle{ text-align:center; margin-top:16px; font-size:13.5px; color:var(--ink-soft); }
+  .auth-error{
+    background:#FCEBE9; color:var(--danger); font-size:13px; padding:10px 12px; border-radius:8px;
+    margin-bottom:14px; display:none;
+  }
+
+  /* ---------- App shell ---------- */
+  #app{ display:none; min-height:100vh; }
+  header.topbar{
+    background:var(--navy); color:#fff; padding:16px 28px; display:flex; align-items:center;
+    justify-content:space-between; gap:20px; position:sticky; top:0; z-index:40;
+    box-shadow:0 2px 10px rgba(0,0,0,.15); flex-wrap:wrap; row-gap:10px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .brand .mark{
+    width:36px;height:36px;border-radius:9px;background:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;
+    overflow:hidden;
+  }
+  .brand .mark img{ width:100%; height:100%; object-fit:contain; padding:6px; }
+  .brand-text{ min-width:0; }
+  .brand-text .t1{ font-weight:700; font-size:16px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .brand-text .t2{ font-size:11.5px; color:#9FC5D6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .topbar-right{ display:flex; align-items:center; gap:14px; flex-shrink:0; }
+  .rep-pill{
+    display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); padding:6px 10px 6px 6px;
+    border-radius:999px; font-size:13px; cursor:pointer; border:none; font-family:inherit; color:#fff;
+  }
+  .rep-pill:hover{ background:rgba(255,255,255,.16); }
+  .rep-pill .av{
+    width:26px;height:26px;border-radius:50%;background:var(--cyan); display:flex;align-items:center;justify-content:center;
+    font-size:11px; font-weight:700; flex-shrink:0;
+  }
+  .rep-pill span{ max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .signout{ background:none; border:none; color:#BFE9F5; font-size:12.5px; cursor:pointer; text-decoration:underline; opacity:.8;}
+  .signout:hover{ opacity:1; }
+
+  main{ max-width:1400px; margin:0 auto; padding:26px 28px 80px; width:100%; }
+
+  /* stats */
+  .stats-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+  .stat-card{
+    background:var(--card); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow);
+    border-top:3px solid var(--cyan); cursor:pointer; text-align:left; border-left:none; border-right:none; border-bottom:none;
+    font-family:inherit; transition:transform .12s, box-shadow .12s; width:100%;
+  }
+  .stat-card:hover{ transform:translateY(-2px); box-shadow:0 4px 14px -4px rgba(14,42,58,.28); }
+  .stat-card:active{ transform:translateY(0); }
+  .stat-card.gold{ border-top-color:var(--gold); }
+  .stat-card.selected{ background:var(--navy); }
+  .stat-card.selected .label, .stat-card.selected .val, .stat-card.selected .sub{ color:#fff !important; }
+  .stat-card.selected.gold .val{ color:var(--gold) !important; }
+  .stat-card .label{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); }
+  .stat-card .val{ font-size:26px; font-weight:800; color:var(--navy); margin-top:4px; font-family:'Fraunces',serif; }
+  .stat-card .sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+
+  /* breakdown sub-header */
+  .breakdown-toggle-row{ display:flex; justify-content:flex-end; margin-bottom:6px; }
+  .breakdown-toggle{
+    display:flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer;
+    font-family:inherit; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-soft); padding:4px 2px;
+  }
+  .breakdown-toggle:hover{ color:var(--navy); }
+  .breakdown-toggle svg{ transition:transform .2s; }
+  .breakdown-toggle.collapsed svg{ transform:rotate(-90deg); }
+  .breakdown-row{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;
+    max-height:320px; opacity:1; overflow:hidden; transition:max-height .22s ease, opacity .18s ease, margin-bottom .22s ease;
+  }
+  .breakdown-row.collapsed{ max-height:0; opacity:0; margin-bottom:0; }
+  .breakdown-card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px 8px; }
+  .breakdown-card h3{
+    font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft);
+    margin:0 0 8px; font-family:inherit;
+  }
+  .breakdown-list{ display:flex; flex-direction:column; gap:2px; max-height:190px; overflow-y:auto; margin-bottom:6px; }
+  .breakdown-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:7px;
+    cursor:pointer; font-size:12.5px; color:var(--ink); border:none; background:none; width:100%; font-family:inherit; text-align:left;
+  }
+  .breakdown-item:hover{ background:#F4F6F7; }
+  .breakdown-item.active{ background:var(--cyan-dim); color:#046484; font-weight:600; }
+  .breakdown-item .cnt{
+    font-weight:700; color:var(--navy); background:#EEF2F4; border-radius:999px; padding:1px 8px; font-size:11px; flex-shrink:0;
+  }
+  .breakdown-item.active .cnt{ background:var(--cyan); color:#fff; }
+  .breakdown-empty{ font-size:12px; color:#9AA8B0; padding:6px 2px 10px; }
+
+  /* toolbar */
+  .toolbar{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px;
+    margin-bottom:22px;
+  }
+  .toolbar-top{ display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+  .search-wrap{ position:relative; flex:1; }
+  .search-wrap input{
+    width:100%; padding:11px 14px 11px 38px; border-radius:9px; border:1.5px solid var(--line);
+    font-size:14px; font-family:inherit; background:#fbfcfc;
+  }
+  .search-wrap input:focus{ outline:none; border-color:var(--cyan); background:#fff; }
+  .search-wrap svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-soft); }
+  .add-btn{ white-space:nowrap; }
+
+  .filter-bar{ display:flex; flex-wrap:wrap; gap:10px; }
+  .dropdown-filter{ position:relative; }
+  .dropdown-trigger{
+    display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:9px; border:1.5px solid var(--line);
+    background:#fff; font-family:inherit; font-size:13px; font-weight:600; color:var(--navy); cursor:pointer;
+    transition:border-color .12s, background .12s;
+  }
+  .dropdown-trigger:hover{ border-color:var(--cyan); }
+  .dropdown-trigger.has-selection{ border-color:var(--cyan); background:var(--cyan-dim); color:#046484; }
+  .dropdown-trigger svg{ transition:transform .15s; color:var(--ink-soft); flex-shrink:0; }
+  .dropdown-trigger.open svg{ transform:rotate(180deg); }
+  .dd-count{
+    background:var(--navy); color:#fff; font-size:10.5px; font-weight:700; border-radius:999px;
+    padding:1px 6px; line-height:1.4;
+  }
+  .dropdown-trigger.has-selection .dd-count{ background:var(--cyan); }
+  .dropdown-panel{
+    display:none; position:absolute; top:calc(100% + 6px); left:0; min-width:240px; max-width:320px;
+    background:#fff; border:1px solid var(--line); border-radius:11px; box-shadow:0 10px 30px -8px rgba(14,42,58,.28);
+    padding:8px; z-index:20; max-height:280px; overflow-y:auto;
+  }
+  .dropdown-panel.open{ display:block; }
+  .dropdown-panel.full-width{ width:100%; min-width:0; max-width:none; top:calc(100% + 4px); }
+  .dropdown-panel .dd-row{
+    padding:8px 10px; border-radius:7px; font-size:13.5px; color:var(--ink); cursor:pointer; user-select:none;
+  }
+  .dropdown-panel .dd-row:hover{ background:#F4F6F7; }
+  .dropdown-panel .dd-row.add-new{ color:var(--cyan); font-weight:600; border-top:1px solid var(--line); margin-top:4px; padding-top:9px; }
+  .dropdown-panel .dd-empty{ padding:8px 10px; font-size:12.5px; color:#9AA8B0; }
+  .dd-option{
+    display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:7px; font-size:13.5px;
+    color:var(--ink); cursor:pointer; user-select:none;
+  }
+  .dd-option:hover{ background:#F4F6F7; }
+  .dd-option input{ accent-color:var(--cyan); width:15px; height:15px; flex-shrink:0; }
+
+  .active-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+  .active-chip{
+    display:flex; align-items:center; gap:6px; padding:5px 8px 5px 12px; border-radius:999px; background:var(--navy);
+    color:#fff; font-size:12px; font-weight:600;
+  }
+  .active-chip button{
+    background:rgba(255,255,255,.2); border:none; color:#fff; width:16px; height:16px; border-radius:50%;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; padding:0;
+  }
+  .active-chip button:hover{ background:rgba(255,255,255,.35); }
+
+  .toolbar-footer{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .clear-filters{ font-size:12.5px; color:var(--cyan); background:none; border:none; cursor:pointer; font-weight:600; padding:0; }
+  .result-count{ font-size:13px; color:var(--ink-soft); margin:2px 2px 14px; }
+
+  /* view toggle + table */
+  .result-row{ display:flex; align-items:center; justify-content:space-between; margin:2px 2px 14px; }
+  .result-row .result-count{ margin:0; }
+  .view-toggle{ display:flex; background:#EEF2F4; border-radius:9px; padding:3px; gap:2px; }
+  .view-toggle-btn{
+    border:none; background:none; padding:6px 14px; border-radius:7px; font-family:inherit; font-size:12.5px;
+    font-weight:600; color:var(--ink-soft); cursor:pointer;
+  }
+  .view-toggle-btn.on{ background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(14,42,58,.15); }
+  .table-wrap{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow-x:auto; }
+  table.kol-table{ width:100%; border-collapse:collapse; font-size:12.5px; min-width:1040px; }
+  .kol-table th{
+    text-align:left; padding:9px 8px; background:#FAFBFC; border-bottom:1.5px solid var(--line);
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft);
+    white-space:nowrap; position:sticky; top:0;
+  }
+  .kol-table th.sortable{ cursor:pointer; user-select:none; }
+  .kol-table th.sortable:hover{ color:var(--navy); }
+  .kol-table td{ padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .kol-table tbody tr:nth-child(even) td{ background:#FAFBFC; }
+  .kol-table tr:hover td{ background:var(--cyan-dim); }
+  .kol-table input[type="text"], .kol-table select{
+    width:100%; min-width:76px; border:1.5px solid transparent; background:transparent; border-radius:6px;
+    padding:6px 6px; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer;
+  }
+  .kol-table input[type="text"]:hover, .kol-table select:hover{ border-color:var(--line); background:#fff; }
+  .kol-table input[type="text"]:focus, .kol-table select:focus{
+    outline:none; border-color:var(--cyan); background:#fff; cursor:text;
+  }
+  .kol-table select:focus{ cursor:pointer; }
+  .table-avatar{
+    width:28px; height:28px; border-radius:50%; background:var(--cyan-dim); color:#046484; font-weight:700;
+    font-size:11px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;
+  }
+  .table-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .table-name-cell{ display:flex; align-items:center; gap:7px; min-width:150px; }
+  .table-check{ display:flex; align-items:center; justify-content:center; }
+  .table-check input{ width:16px; height:16px; accent-color:var(--cyan); cursor:pointer; }
+  .products-cell-btn{
+    border:1.5px solid var(--line); background:#fff; border-radius:7px; padding:6px 8px; font-size:11.5px;
+    font-family:inherit; color:var(--ink-soft); cursor:pointer; white-space:nowrap; max-width:130px;
+    overflow:hidden; text-overflow:ellipsis; display:block; text-align:left;
+  }
+  .products-cell-btn:hover{ border-color:var(--cyan); }
+  .products-cell{ position:relative; }
+  .table-row-actions{ display:flex; gap:2px; white-space:nowrap; }
+  .table-flags{ display:flex; gap:2px; white-space:nowrap; }
+  .flag-btn{
+    background:none; border:none; cursor:pointer; padding:3px; border-radius:6px; font-size:13px; line-height:1;
+    opacity:.22; filter:grayscale(1); transition:opacity .12s, filter .12s;
+  }
+  .flag-btn:hover{ background:#EEF2F4; }
+  .flag-btn.on{ opacity:1; filter:none; }
+
+  /* map view */
+  .map-header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;
+  }
+  .map-header h1{ font-size:22px; color:var(--navy); margin:0; }
+  .map-header .sub{ font-size:13px; color:var(--ink-soft); margin-top:2px; }
+  .map-back-btn{
+    display:flex; align-items:center; gap:6px; background:#fff; border:1.5px solid var(--line); border-radius:9px;
+    padding:9px 16px; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--navy); cursor:pointer;
+  }
+  .map-back-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+  #kolMap{
+    width:100%; height:calc(100vh - 250px); min-height:420px; border-radius:var(--radius); box-shadow:var(--shadow);
+    background:#EEF2F4;
+  }
+  .map-attribution{ font-size:11px; color:#9AA8B0; margin-top:8px; }
+  .map-pin{
+    width:26px; height:26px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid #fff;
+    box-shadow:0 1px 4px rgba(14,42,58,.4); display:flex; align-items:center; justify-content:center;
+  }
+  .map-pin.gold{ background:var(--gold); }
+  .map-pin.cyan{ background:var(--cyan); }
+  .map-pin.grey{ background:#8A97A0; }
+  .map-popup h4{ margin:0 0 4px; font-size:14px; color:var(--navy); font-family:'Fraunces',serif; }
+  .map-popup .loc{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+  .map-popup button{
+    background:var(--navy); color:#fff; border:none; border-radius:7px; padding:6px 12px; font-size:12.5px;
+    font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .map-popup button:hover{ background:var(--navy-light); }
+  .map-geo-note{
+    background:var(--cyan-dim); color:#046484; border-radius:10px; padding:10px 14px; font-size:12.5px;
+    margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+
+  /* card grid */
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
+  .kol-card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    display:flex; flex-direction:column; border-left:4px solid var(--cyan); position:relative; cursor:pointer;
+  }
+  .kol-card.main-tier{ border-left-color:var(--gold); }
+  .kol-card.candidate-tier{ border-left-color:#B8C2C9; }
+  .kol-status-bar{
+    padding:6px 16px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    color:#fff; display:flex; align-items:center; gap:6px;
+  }
+  .kol-status-bar.active{ background:#2E8B57; }
+  .kol-status-bar.prospective{ background:#8A97A0; }
+  .kol-body{ padding:16px 18px 14px; flex:1; display:flex; flex-direction:column; gap:10px; }
+  .kol-head{ display:flex; gap:12px; align-items:flex-start; }
+  .avatar{
+    width:46px;height:46px;border-radius:50%; background:var(--cyan-dim); color:#046484; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+  }
+  .kol-head-text{ flex:1; min-width:0; }
+  .kol-name-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .kol-name{ font-weight:700; font-size:15px; color:var(--navy); }
+  .tier-badge{
+    font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; padding:2px 7px;
+    border-radius:5px; background:var(--cyan-dim); color:#046484;
+  }
+  .tier-badge.main{ background:var(--gold-dim); color:#8A6415; }
+  .tier-badge.candidate{ background:#EEF2F4; color:#5B7080; }
+  .kol-cred{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
+  .kol-loc{ font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:4px; margin-top:2px; }
+
+  .tag-row{ display:flex; flex-wrap:wrap; gap:5px; }
+  .tag{ font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:6px; background:#EEF2F4; color:var(--ink-soft); }
+  .tag.spec{ background:#EAF6FB; color:#0A6E8C; }
+  .tag.prod{ background:#F3EEE0; color:#8A6415; }
+  .tag.cap{ background:#F0EFFA; color:#4B3F9E; }
+  .tag.pending{ background:#FBE9D0; color:#8A5A1E; }
+
+
+  .kol-links{ display:flex; flex-wrap:wrap; gap:10px; font-size:12px; margin-top:auto; padding-top:4px; }
+  .kol-links a{ color:var(--cyan); text-decoration:none; display:flex; align-items:center; gap:4px; }
+  .kol-links a:hover{ text-decoration:underline; }
+  .kol-links span{ color:var(--ink-soft); display:flex; align-items:center; gap:4px; }
+
+  .kol-footer{
+    border-top:1px solid var(--line); padding:9px 14px; display:flex; justify-content:space-between; align-items:center;
+    background:#fbfcfc;
+  }
+  .kol-footer .added-by{ font-size:10.5px; color:#9AA8B0; }
+  .icon-btn{
+    background:none; border:none; cursor:pointer; color:var(--ink-soft); padding:5px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ background:var(--cyan-dim); color:var(--navy); }
+  .icon-btn.danger:hover{ background:#FCEBE9; color:var(--danger); }
+
+  .empty-state{
+    grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--ink-soft);
+  }
+  .empty-state h3{ color:var(--navy); font-size:19px; margin-bottom:6px; }
+  .empty-state .btn{ margin-top:14px; }
+
+  /* modal */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(14,42,58,.55); z-index:100;
+    display:none; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto;
+  }
+  .modal{
+    background:#fff; border-radius:16px; max-width:640px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.3);
+    margin-bottom:40px; isolation:isolate;
+  }
+  .modal-head{
+    padding:20px 26px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; background:#fff; border-radius:16px 16px 0 0; z-index:2;
+  }
+  .modal-head h2{ font-size:19px; margin:0; color:var(--navy); }
+  .modal-close{ background:none; border:none; cursor:pointer; color:var(--ink-soft); padding:4px; }
+  .modal-close:hover{ color:var(--navy); }
+  .modal-body{ padding:22px 26px; background:#fff; }
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-row.single{ grid-template-columns:1fr; }
+  .seg-group{ display:flex; gap:8px; }
+  .seg-btn{
+    flex:1; padding:9px; border-radius:8px; border:1.5px solid var(--line); background:#fff; cursor:pointer;
+    font-weight:600; font-size:13px; color:var(--ink-soft); text-align:center;
+  }
+  .seg-btn.on{ border-color:var(--navy); background:var(--navy); color:#fff; }
+  .check-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .check-pill{
+    display:flex; align-items:center; gap:7px; padding:7px 12px; border-radius:8px; border:1.5px solid var(--line);
+    font-size:12.8px; cursor:pointer; color:var(--ink-soft); font-weight:600;
+  }
+  .check-pill input{ accent-color:var(--cyan); }
+  .check-pill.on{ border-color:var(--cyan); background:var(--cyan-dim); color:#046484; }
+  .modal-footer{
+    padding:16px 26px 22px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--line); margin-top:8px;
+  }
+  .hint{ font-size:11.5px; color:#9AA8B0; margin-top:4px; }
+  .view-head{ display:flex; gap:14px; align-items:flex-start; }
+  .view-head .avatar{ width:64px; height:64px; font-size:20px; }
+  .view-name{ font-size:19px; font-weight:700; color:var(--navy); font-family:'Fraunces',serif; }
+  .view-status{ display:inline-flex; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:3px 8px; border-radius:5px; color:#fff; margin-top:4px; }
+  .view-status.active{ background:#2E8B57; }
+  .view-status.prospective{ background:#8A97A0; }
+  .view-row{ display:flex; gap:8px; font-size:13.5px; color:var(--ink); padding:6px 0; border-bottom:1px solid var(--line); }
+  .view-row:last-child{ border-bottom:none; }
+  .view-row .k{ color:var(--ink-soft); min-width:120px; flex-shrink:0; font-weight:600; }
+  .view-row .v{ flex:1; word-break:break-word; }
+  .view-row .v a{ color:var(--cyan); text-decoration:none; }
+  .view-row .v a:hover{ text-decoration:underline; }
+  .view-bio{ font-size:13.5px; color:#3E4C55; line-height:1.6; white-space:pre-line; }
+  .view-added-by{ font-size:11px; color:#9AA8B0; margin-top:18px; }
+  .section-label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin:18px 0 8px; }
+  .photo-row{ display:flex; gap:16px; align-items:flex-start; margin-bottom:8px; }
+  .photo-preview{
+    width:74px; height:74px; border-radius:50%; background:var(--cyan-dim); color:#046484; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+  .photo-controls{ flex:1; }
+  .photo-controls input[type="text"]{
+    width:100%; padding:9px 12px; border:1.5px solid var(--line); border-radius:9px; font-size:13px;
+    font-family:inherit; background:#fbfcfc;
+  }
+  .photo-controls input[type="text"]:focus{ outline:none; border-color:var(--cyan); background:#fff; }
+  .photo-upload-btn{ display:inline-flex; cursor:pointer; padding:8px 14px; font-size:13px; }
+  .doc-chip{
+    display:inline-flex; align-items:center; gap:8px; background:var(--cyan-dim); color:#046484;
+    border-radius:8px; padding:7px 8px 7px 12px; font-size:13px; font-weight:600; margin-bottom:10px; max-width:100%;
+  }
+  .doc-chip span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .doc-chip button{
+    background:rgba(4,100,132,.12); border:none; color:#046484; width:20px; height:20px; border-radius:50%;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; line-height:1; flex-shrink:0; padding:0;
+  }
+  .doc-chip button:hover{ background:rgba(4,100,132,.22); }
+  .kol-links a.doc-link{ font-weight:600; }
+
+  @media (max-width:900px){
+    .stats-row{ grid-template-columns:repeat(2,1fr); }
+    .breakdown-row{ grid-template-columns:repeat(2,1fr); }
+    .form-row{ grid-template-columns:1fr; }
+    header.topbar{ padding:14px 16px; } main{ padding:18px 14px 60px; }
+  }
+
+  @media (max-width:560px){
+    header.topbar{ padding:12px 14px; gap:10px; }
+    .brand{ gap:9px; }
+    .brand .mark{ width:32px; height:32px; }
+    .brand-text .t1{ font-size:14.5px; max-width:52vw; }
+    .brand-text .t2{ display:none; }
+    main{ padding:14px 10px 60px; }
+    .stats-row{ grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:18px; }
+    .stat-card{ padding:12px 14px; }
+    .stat-card .val{ font-size:21px; }
+    .breakdown-row{ grid-template-columns:1fr; gap:10px; margin-bottom:18px; }
+    .toolbar{ padding:14px; }
+    .toolbar-top{ flex-wrap:wrap; }
+    .search-wrap{ flex:1 1 100%; }
+    .add-btn{ flex:1 1 100%; justify-content:center; }
+    .filter-bar{ gap:8px; }
+    .dropdown-trigger{ padding:8px 11px; font-size:12.5px; }
+    .dropdown-panel{ max-width:calc(100vw - 40px); }
+    .result-row{ flex-wrap:wrap; gap:8px; }
+    .grid{ grid-template-columns:1fr; gap:12px; }
+    .modal-overlay{ padding:0; align-items:stretch; }
+    .modal{ max-width:100%; width:100%; min-height:100vh; border-radius:0; margin-bottom:0; }
+    .modal-head{ border-radius:0; padding:16px 18px; position:static; }
+    .modal-body{ padding:16px 18px; }
+    .modal-footer{ padding:14px 18px 18px; }
+    .photo-row{ flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<datalist id="acteonEmployeesList"></datalist>
+
+<!-- ============ SETUP SCREEN (shown if Firebase config not filled in) ============ -->
+<div id="setupScreen" class="center-screen" style="display:none;">
+  <div class="setup-card">
+    <h1>One-time setup needed</h1>
+    <p>This app stores KOL data in Firebase so every rep sees the same live database. The Firebase connection hasn't been configured yet.</p>
+    <ol>
+      <li>Go to <code>console.firebase.google.com</code> and create a project (or reuse an existing Acteon one).</li>
+      <li>Add a <b>Web App</b> to the project, then copy the <code>firebaseConfig</code> object it gives you.</li>
+      <li>Enable <b>Authentication → Email/Password</b> and <b>Firestore Database</b> (both work on the free Spark plan).</li>
+      <li>Open this file in a text editor, find the <code>firebaseConfig</code> block near the top of the script, and paste your values in.</li>
+      <li>Set Firestore rules so any signed-in user can read/write the <code>kols</code> collection, e.g.:</li>
+    </ol>
+    <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /kols/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+    <p>Save the file and re-open it (or re-deploy to Netlify). This screen will disappear once a valid config is detected.</p>
+  </div>
+</div>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen" class="center-screen" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="mark"><img src="ACTEON-MARK-ONLY.png" alt="Acteon" /></div>
+      <div>
+        <div class="t1">Acteon KOL Network</div>
+        <div class="t2">Key Opinion Leader database</div>
+      </div>
+    </div>
+
+    <div id="loginPane">
+      <h2>Welcome back</h2>
+      <div class="sub">Sign in with your Acteon email address.</div>
+      <div class="auth-error" id="loginError"></div>
+      <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@acteongroup.com" /></div>
+      <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" /></div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+      <div class="auth-toggle">New here? <button class="btn-text" onclick="showSignup()">Create an account</button></div>
+    </div>
+
+    <div id="signupPane" style="display:none;">
+      <h2>Create your account</h2>
+      <div class="sub">Join the KOL network as a rep.</div>
+      <div class="auth-error" id="signupError"></div>
+      <div class="field"><label>Full name</label><input type="text" id="signupName" placeholder="Jane Smith" /></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="signupEmail" placeholder="you@acteongroup.com" />
+        <div class="hint">Must be an @acteongroup.com address.</div>
+      </div>
+      <div class="field"><label>Password</label><input type="password" id="signupPassword" placeholder="At least 6 characters" /></div>
+      <button class="btn btn-primary" onclick="doSignup()">Create account</button>
+      <div class="auth-toggle">Already have an account? <button class="btn-text" onclick="showLogin()">Sign in</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VERIFY EMAIL SCREEN ============ -->
+<div id="verifyScreen" class="center-screen" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="mark"><img src="ACTEON-MARK-ONLY.png" alt="Acteon" /></div>
+      <div>
+        <div class="t1">Acteon KOL Network</div>
+        <div class="t2">Key Opinion Leader database</div>
+      </div>
+    </div>
+    <h2>Verify your email</h2>
+    <div class="sub">We sent a verification link to <strong id="verifyEmailAddr"></strong>. Click it, then come back here.</div>
+    <div class="auth-error" id="verifyError"></div>
+    <div class="hint" id="verifyStatus" style="margin-bottom:14px;"></div>
+    <button class="btn btn-primary" onclick="checkVerified()">I've verified — Continue</button>
+    <div class="auth-toggle">
+      Didn't get it? <button class="btn-text" onclick="resendVerificationEmail()">Resend email</button>
+    </div>
+    <div class="auth-toggle"><button class="btn-text" onclick="doSignOut()">Sign out</button></div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark"><img src="ACTEON-MARK-ONLY.png" alt="Acteon" /></div>
+      <div class="brand-text">
+        <div class="t1">Acteon KOL Network</div>
+        <div class="t2">Key Opinion Leader database — all products</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="rep-pill" onclick="editDisplayName()" title="Click to set your display name">
+        <div class="av" id="repAvatar">?</div>
+        <span id="repName">Rep</span>
+      </button>
+      <button class="signout" onclick="doSignOut()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="directoryView">
+    <div class="breakdown-toggle-row">
+      <button class="breakdown-toggle" id="breakdownToggle" onclick="toggleBreakdownSection()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <span>Summary</span>
+      </button>
+    </div>
+    <div class="breakdown-row" id="breakdownRow"></div>
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="toolbar">
+      <div class="toolbar-top">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Search by name, credentials, or bio…" oninput="renderGrid()" />
+        </div>
+        <button class="btn btn-ghost add-btn" id="exportBtn" onclick="exportFilteredExcel()" title="Export the currently filtered results to Excel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg>
+          Export
+        </button>
+        <button class="btn btn-cyan add-btn" onclick="openAddModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add KOL
+        </button>
+      </div>
+      <div class="filter-bar">
+        <div class="dropdown-filter">
+          <button class="dropdown-trigger" id="ddTrigger-specialty" onclick="toggleDropdown('specialty')">
+            <span>Specialty</span>
+            <span class="dd-count" id="ddCount-specialty" style="display:none;"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel" id="ddPanel-specialty"></div>
+        </div>
+        <div class="dropdown-filter">
+          <button class="dropdown-trigger" id="ddTrigger-product" onclick="toggleDropdown('product')">
+            <span>Products</span>
+            <span class="dd-count" id="ddCount-product" style="display:none;"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel" id="ddPanel-product"></div>
+        </div>
+        <div class="dropdown-filter">
+          <button class="dropdown-trigger" id="ddTrigger-region" onclick="toggleDropdown('region')">
+            <span>Region</span>
+            <span class="dd-count" id="ddCount-region" style="display:none;"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel" id="ddPanel-region"></div>
+        </div>
+        <div class="dropdown-filter">
+          <button class="dropdown-trigger" id="ddTrigger-country" onclick="toggleDropdown('country')">
+            <span>Country</span>
+            <span class="dd-count" id="ddCount-country" style="display:none;"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel" id="ddPanel-country"></div>
+        </div>
+        <div class="dropdown-filter">
+          <button class="dropdown-trigger" id="ddTrigger-primaryRep" onclick="toggleDropdown('primaryRep')">
+            <span>Acteon Contact</span>
+            <span class="dd-count" id="ddCount-primaryRep" style="display:none;"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-panel" id="ddPanel-primaryRep"></div>
+        </div>
+        <button class="dropdown-trigger" id="myKolsToggle" onclick="toggleMyKols()" title="Show only KOLs where you're the Acteon Contact">
+          <span>👤 My KOLs</span>
+        </button>
+      </div>
+      <div class="active-chips" id="activeChips"></div>
+      <div class="toolbar-footer">
+        <button class="clear-filters" onclick="clearFilters()">Clear all filters</button>
+      </div>
+    </div>
+
+    <div class="result-row">
+      <div class="result-count" id="resultCount"></div>
+      <div class="view-toggle">
+        <button class="view-toggle-btn on" id="viewBtn-cards" onclick="setView('cards')">Cards</button>
+        <button class="view-toggle-btn" id="viewBtn-table" onclick="setView('table')">Table</button>
+        <button class="view-toggle-btn" id="viewBtn-map" onclick="openMapView()">Map</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="table-wrap" id="tableWrap" style="display:none;">
+      <table class="kol-table" id="kolTable"></table>
+    </div>
+    </div>
+
+    <!-- ============ MAP VIEW ============ -->
+    <div id="mapSection" style="display:none;">
+      <div class="map-header">
+        <div>
+          <h1>KOL World Map</h1>
+          <div class="sub" id="mapSubtext">Showing KOLs matching your current filters</div>
+        </div>
+        <button class="map-back-btn" onclick="closeMapView()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to Directory
+        </button>
+      </div>
+      <div class="map-geo-note" id="mapGeoNote" style="display:none;"></div>
+      <div id="kolMap"></div>
+      <div class="map-attribution">Pins are placed from each KOL's Country and Location using OpenStreetMap's free geocoding service. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ ADD / EDIT MODAL ============ -->
+<div class="modal-overlay" id="kolModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">Add KOL</h2>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="section-label" style="margin-top:0;">Photo</div>
+      <div class="photo-row">
+        <div class="photo-preview" id="photoPreview">
+          <span id="photoPreviewInitials">?</span>
+        </div>
+        <div class="photo-controls">
+          <label class="btn btn-ghost photo-upload-btn">
+            Upload image
+            <input type="file" id="f_photoFile" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)" />
+          </label>
+          <div class="hint" style="margin:8px 0 6px;">or paste an image URL</div>
+          <input type="text" id="f_photoUrl" placeholder="https://…" oninput="handlePhotoUrlInput()" />
+          <div class="hint" id="photoStatus"></div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field"><label>Full name *</label><input type="text" id="f_name" placeholder="Dr. Jane Smith" oninput="updatePhotoPreview()" /></div>
+        <div class="field"><label>Credentials / title</label><input type="text" id="f_credentials" placeholder="DDS, RDH, etc." /></div>
+      </div>
+
+      <div class="field">
+        <label>Type</label>
+        <div class="seg-group" id="f_type"></div>
+      </div>
+
+      <div class="field" id="specialtyField">
+        <label>Specialty *</label>
+        <div class="check-grid" id="f_specialty"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Location (city, state)</label>
+          <input type="text" id="f_location" placeholder="Raleigh, NC" />
+        </div>
+        <div class="field">
+          <label>Country *</label>
+          <select id="f_country"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Acteon Contact</label>
+        <div style="position:relative;">
+          <input type="text" id="f_primaryRep" placeholder="Start typing a name…" autocomplete="off"
+            oninput="renderPrimaryRepOptions(true)" onfocus="renderPrimaryRepOptions(false)" onblur="handlePrimaryRepBlur()" />
+          <div class="dropdown-panel full-width" id="primaryRepPanel"></div>
+        </div>
+        <div class="hint">As the person adding this KOL, you're defaulted as the Acteon Contact — set a new Acteon Contact if needed. Click into the field to browse everyone, or type to search; if they're not there yet, an "Add as new contact" option will appear.</div>
+        <div class="auth-error" id="primaryRepError" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="check-grid">
+        <label class="check-pill" id="f_virtualWrap" onclick="toggleAvailFlag(event,'availableVirtually')">
+          <input type="checkbox" id="f_availableVirtually" onclick="event.stopPropagation()" onchange="toggleAvailFlag(event,'availableVirtually')" />
+          💻 Available virtually
+        </label>
+        <label class="check-pill" id="f_travelsWrap" onclick="toggleAvailFlag(event,'travelsNationally')">
+          <input type="checkbox" id="f_travelsNationally" onclick="event.stopPropagation()" onchange="toggleAvailFlag(event,'travelsNationally')" />
+          ✈️ Travels nationally
+        </label>
+        <label class="check-pill" id="f_royaltiesWrap" onclick="toggleAvailFlag(event,'royaltiesContract')">
+          <input type="checkbox" id="f_royaltiesContract" onclick="event.stopPropagation()" onchange="toggleAvailFlag(event,'royaltiesContract')" />
+          📜 Royalties contract
+        </label>
+        <label class="check-pill" id="f_englishWrap" onclick="toggleAvailFlag(event,'englishSpeaking')">
+          <input type="checkbox" id="f_englishSpeaking" onclick="event.stopPropagation()" onchange="toggleAvailFlag(event,'englishSpeaking')" />
+          🗣️ English speaking
+        </label>
+      </div>
+
+      <div class="section-label">KOL level</div>
+      <div class="seg-group" id="f_level"></div>
+
+      <div class="section-label">Capabilities</div>
+      <div class="check-grid" id="f_capabilities"></div>
+      <div class="hint">Pre-filled based on level — check or uncheck to customize per person.</div>
+
+      <div class="section-label">Products represented</div>
+      <div class="check-grid" id="f_products"></div>
+
+      <div class="section-label">Pipeline status</div>
+      <div class="seg-group" id="f_status"></div>
+
+      <div class="section-label">Bio</div>
+      <div class="field"><textarea id="f_bio" rows="3" placeholder="Short bio / area of expertise…"></textarea></div>
+
+      <div class="field">
+        <label>Attached document</label>
+        <div id="docPreview"></div>
+        <label class="btn btn-ghost photo-upload-btn">
+          Upload document
+          <input type="file" id="f_docFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" style="display:none;" onchange="handleDocUpload(event)" />
+        </label>
+        <div class="hint" style="margin:8px 0 6px;">or paste a link to a document already hosted elsewhere (SharePoint, Drive, etc.)</div>
+        <input type="text" id="f_documentUrl" placeholder="https://…" oninput="handleDocUrlInput()" />
+        <div class="hint" id="docStatus"></div>
+      </div>
+
+      <div class="section-label">Acteon Activities</div>
+      <div class="field"><textarea id="f_acteonActivities" rows="3" placeholder="Trainings led, webinars, events, R&amp;D input…"></textarea></div>
+
+      <div class="section-label">Contact &amp; links</div>
+      <div class="form-row">
+        <div class="field"><label>Email</label><input type="email" id="f_email" placeholder="name@example.com" /></div>
+        <div class="field"><label>Phone</label><input type="text" id="f_phone" placeholder="(555) 123-4567" /></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>LinkedIn URL</label><input type="text" id="f_linkedin" placeholder="https://linkedin.com/in/…" /></div>
+        <div class="field"><label>Website</label><input type="text" id="f_website" placeholder="https://…" /></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Instagram URL</label><input type="text" id="f_instagram" placeholder="https://instagram.com/…" /></div>
+        <div class="field"><label>Facebook URL</label><input type="text" id="f_facebook" placeholder="https://facebook.com/…" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="width:auto; padding:11px 26px;" onclick="saveKol()">Save KOL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VIEW MODAL ============ -->
+<div class="modal-overlay" id="viewModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="viewModalTitle">KOL Details</h2>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <button class="icon-btn" title="Edit" onclick="viewSwitchToEdit()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button class="modal-close" onclick="closeViewModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" id="viewModalBody"></div>
+  </div>
+</div>
+
+<script type="module">
+/* =========================================================================
+   FIREBASE CONFIG — replace with your project's config from the Firebase
+   console (Project settings → General → Your apps → SDK setup and config).
+   The app will show a setup screen until this is filled in.
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCnauR1Oaiz_SuHYf6-kAy6i_d9yt2y_UY",
+  authDomain: "kol-directory-bf4d2.firebaseapp.com",
+  projectId: "kol-directory-bf4d2",
+  storageBucket: "kol-directory-bf4d2.firebasestorage.app",
+  messagingSenderId: "17501330760",
+  appId: "1:17501330760:web:745758e307ae6f2ef3677d"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, updateProfile, signOut, sendEmailVerification
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc,
+  doc, setDoc, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const isConfigured = firebaseConfig.apiKey !== "REPLACE_ME" && !firebaseConfig.apiKey.includes("REPLACE");
+
+let app, auth, db;
+if (isConfigured) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+  document.getElementById("setupScreen").style.display = "flex";
+}
+
+/* ---------------------------- Constants ---------------------------- */
+const TYPES = ["Dentist", "RDH"];
+const SPECIALTIES = ["General Dentist","Orthodontist","Oral and Maxillofacial Surgeon","Periodontist","Endodontist","Pediatric Dentist","Prosthodontist","Implantologist"];
+const PRODUCTS = ["Optima","Cameras","Opus","Newtron","Cube","XM-Lite","Other / General"];
+const LEVELS = ["Main","Local Advocate","Candidate"];
+// Old level values that need to be migrated to the current LEVELS list — the two-tier
+// scheme ("Main KOL"/"Level 2 KOL") and the short-lived "Associate" rename.
+const LEGACY_LEVEL_VALUES = new Set(["Main KOL", "Level 2 KOL", "Associate"]);
+function normalizeLevel(level) {
+  if (level === "Main KOL") return "Main";
+  if (level === "Level 2 KOL" || level === "Associate") return "Local Advocate";
+  return level || "";
+}
+const STATUS_OPTIONS = ["Active","Prospective"];
+// Admins can approve Main KOLs and delete any KOL. Everyone else can only delete a
+// KOL where they're listed as the Acteon Contact (see canDeleteKol()).
+const ADMIN_EMAILS = new Set([
+  "cecilia.geffroy@acteongroup.com",
+  "amy.hayes@acteongroup.com",
+  "david.teter@acteongroup.com",
+]);
+// One-time seed for the "employees" Firestore collection (Acteon Contact picklist).
+// After the first load, this list lives in Firestore and can grow from there —
+// editing this array again won't do anything once the collection is non-empty.
+const SEED_EMPLOYEES = [
+  { name:"Amer Samaneh",      email:"amer.samaneh@acteongroup.com" },
+  { name:"David Teter",       email:"david.teter@acteongroup.com" },
+  { name:"Steve Andregg",     email:"steve.andregg@acteongroup.com" },
+  { name:"Andrea Castellini", email:"andrea.castellini@acteongroup.com" },
+  { name:"Kristi Henderson",  email:"kristi.henderson@acteongroup.com" },
+  { name:"Lee Davis",         email:"lee.davis@acteongroup.com" },
+  { name:"Artur Khavari",     email:"artur.khavari@acteongroup.com" },
+  { name:"Xavier Guenaire",   email:"xavier.guenaire@acteongroup.com" },
+  { name:"Anne Landelle",     email:"anne.landelle@acteongroup.com" },
+  { name:"Mark Nguyen",       email:"mark.nguyen@acteongroup.com" },
+  { name:"Amy Hayes",         email:"amy.hayes@acteongroup.com" },
+];
+const COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria",
+  "Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan",
+  "Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia",
+  "Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (DRC)","Congo (Republic)",
+  "Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador",
+  "Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France",
+  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau",
+  "Guyana","Haiti","Honduras","Hong Kong","Hungary","Iceland","India","Indonesia","Iran","Iraq",
+  "Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo",
+  "Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania",
+  "Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius",
+  "Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia",
+  "Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway",
+  "Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland",
+  "Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino",
+  "Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands",
+  "Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland",
+  "Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia",
+  "Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe",
+];
+// Approximate country centroids — used on the map view only as a fallback when a KOL's
+// specific location can't be geocoded (see backfillMissingGeo), so every KOL with a
+// country on file lands somewhere sensible even without a precise city match.
+const COUNTRY_CENTROIDS = {
+  "Afghanistan":[33.9,67.7],"Albania":[41.2,20.2],"Algeria":[28.0,1.7],"Andorra":[42.5,1.6],"Angola":[-11.2,17.9],
+  "Antigua and Barbuda":[17.1,-61.8],"Argentina":[-38.4,-63.6],"Armenia":[40.1,45.0],"Australia":[-25.3,133.8],"Austria":[47.5,14.6],
+  "Azerbaijan":[40.1,47.6],"Bahamas":[24.3,-76.6],"Bahrain":[26.0,50.6],"Bangladesh":[23.7,90.4],"Barbados":[13.2,-59.5],
+  "Belarus":[53.7,27.9],"Belgium":[50.5,4.5],"Belize":[17.2,-88.5],"Benin":[9.3,2.3],"Bhutan":[27.5,90.4],
+  "Bolivia":[-16.3,-63.6],"Bosnia and Herzegovina":[43.9,17.7],"Botswana":[-22.3,24.7],"Brazil":[-14.2,-51.9],"Brunei":[4.5,114.7],
+  "Bulgaria":[42.7,25.5],"Burkina Faso":[12.2,-1.6],"Burundi":[-3.4,29.9],"Cabo Verde":[16.0,-24.0],"Cambodia":[12.6,105.0],
+  "Cameroon":[7.4,12.4],"Canada":[56.1,-106.3],"Central African Republic":[6.6,20.9],"Chad":[15.5,18.7],"Chile":[-35.7,-71.5],
+  "China":[35.9,104.2],"Colombia":[4.6,-74.1],"Comoros":[-11.9,43.9],"Congo (DRC)":[-4.0,21.8],"Congo (Republic)":[-0.2,15.8],
+  "Costa Rica":[9.7,-84.0],"Croatia":[45.1,15.2],"Cuba":[21.5,-77.8],"Cyprus":[35.1,33.4],"Czech Republic":[49.8,15.5],
+  "Denmark":[56.3,9.5],"Djibouti":[11.8,42.6],"Dominica":[15.4,-61.4],"Dominican Republic":[18.7,-70.2],"Ecuador":[-1.8,-78.2],
+  "Egypt":[26.8,30.8],"El Salvador":[13.8,-88.9],"Equatorial Guinea":[1.6,10.3],"Eritrea":[15.2,39.8],"Estonia":[58.6,25.0],
+  "Eswatini":[-26.5,31.5],"Ethiopia":[9.1,40.5],"Fiji":[-17.7,178.1],"Finland":[61.9,25.7],"France":[46.6,2.2],
+  "Gabon":[-0.8,11.6],"Gambia":[13.4,-15.3],"Georgia":[42.3,43.4],"Germany":[51.2,10.4],"Ghana":[7.9,-1.0],
+  "Greece":[39.1,21.8],"Grenada":[12.1,-61.7],"Guatemala":[15.8,-90.2],"Guinea":[9.9,-9.7],"Guinea-Bissau":[11.8,-15.2],
+  "Guyana":[4.9,-58.9],"Haiti":[18.9,-72.3],"Honduras":[15.2,-86.2],"Hong Kong":[22.3,114.2],"Hungary":[47.2,19.5],
+  "Iceland":[64.9,-19.0],"India":[20.6,79.0],"Indonesia":[-0.8,113.9],"Iran":[32.4,53.7],"Iraq":[33.2,43.7],
+  "Ireland":[53.4,-8.2],"Israel":[31.0,34.9],"Italy":[41.9,12.6],"Jamaica":[18.1,-77.3],"Japan":[36.2,138.3],
+  "Jordan":[30.6,36.2],"Kazakhstan":[48.0,66.9],"Kenya":[-0.0,37.9],"Kiribati":[1.9,-157.4],"Kosovo":[42.6,20.9],
+  "Kuwait":[29.3,47.5],"Kyrgyzstan":[41.2,74.8],"Laos":[19.9,102.5],"Latvia":[56.9,24.6],"Lebanon":[33.9,35.9],
+  "Lesotho":[-29.6,28.2],"Liberia":[6.4,-9.4],"Libya":[26.3,17.2],"Liechtenstein":[47.2,9.5],"Lithuania":[55.2,23.9],
+  "Luxembourg":[49.8,6.1],"Madagascar":[-18.8,46.9],"Malawi":[-13.3,34.3],"Malaysia":[4.2,101.9],"Maldives":[3.2,73.2],
+  "Mali":[17.6,-4.0],"Malta":[35.9,14.4],"Marshall Islands":[7.1,171.2],"Mauritania":[21.0,-10.9],"Mauritius":[-20.3,57.6],
+  "Mexico":[23.6,-102.6],"Micronesia":[6.9,158.2],"Moldova":[47.4,28.4],"Monaco":[43.7,7.4],"Mongolia":[46.9,103.8],
+  "Montenegro":[42.7,19.4],"Morocco":[31.8,-7.1],"Mozambique":[-18.7,35.5],"Myanmar":[21.9,95.9],"Namibia":[-22.9,18.5],
+  "Nauru":[-0.5,166.9],"Nepal":[28.4,84.1],"Netherlands":[52.1,5.3],"New Zealand":[-40.9,174.9],"Nicaragua":[12.9,-85.2],
+  "Niger":[17.6,8.1],"Nigeria":[9.1,8.7],"North Korea":[40.3,127.5],"North Macedonia":[41.6,21.7],"Norway":[60.5,8.5],
+  "Oman":[21.5,55.9],"Pakistan":[30.4,69.3],"Palau":[7.5,134.6],"Palestine":[31.9,35.2],"Panama":[8.5,-80.8],
+  "Papua New Guinea":[-6.3,143.9],"Paraguay":[-23.4,-58.4],"Peru":[-9.2,-75.0],"Philippines":[12.9,121.8],"Poland":[51.9,19.1],
+  "Portugal":[39.4,-8.2],"Qatar":[25.4,51.2],"Romania":[45.9,25.0],"Russia":[61.5,105.3],"Rwanda":[-1.9,29.9],
+  "Saint Kitts and Nevis":[17.4,-62.8],"Saint Lucia":[13.9,-60.9],"Saint Vincent and the Grenadines":[13.0,-61.2],"Samoa":[-13.8,-172.1],"San Marino":[43.9,12.5],
+  "Sao Tome and Principe":[0.2,6.6],"Saudi Arabia":[23.9,45.1],"Senegal":[14.5,-14.5],"Serbia":[44.0,21.0],"Seychelles":[-4.7,55.5],
+  "Sierra Leone":[8.5,-11.8],"Singapore":[1.35,103.8],"Slovakia":[48.7,19.7],"Slovenia":[46.2,15.0],"Solomon Islands":[-9.6,160.2],
+  "Somalia":[5.2,46.2],"South Africa":[-30.6,22.9],"South Korea":[35.9,127.8],"South Sudan":[6.9,31.3],"Spain":[40.5,-3.7],
+  "Sri Lanka":[7.9,80.8],"Sudan":[12.9,30.2],"Suriname":[3.9,-56.0],"Sweden":[60.1,18.6],"Switzerland":[46.8,8.2],
+  "Syria":[34.8,39.0],"Taiwan":[23.7,121.0],"Tajikistan":[38.9,71.3],"Tanzania":[-6.4,34.9],"Thailand":[15.9,101.0],
+  "Timor-Leste":[-8.9,125.7],"Togo":[8.6,0.8],"Tonga":[-21.2,-175.2],"Trinidad and Tobago":[10.7,-61.2],"Tunisia":[33.9,9.5],
+  "Turkey":[38.9,35.2],"Turkmenistan":[38.97,59.6],"Tuvalu":[-7.1,177.6],"Uganda":[1.4,32.3],"Ukraine":[48.4,31.2],
+  "United Arab Emirates":[23.4,53.8],"United Kingdom":[54.0,-2.9],"United States":[39.8,-98.6],"Uruguay":[-32.5,-55.8],"Uzbekistan":[41.4,64.6],
+  "Vanuatu":[-15.4,166.9],"Vatican City":[41.9,12.45],"Venezuela":[6.4,-66.6],"Vietnam":[14.1,108.3],"Yemen":[15.6,48.5],
+  "Zambia":[-13.1,27.8],"Zimbabwe":[-19.0,29.2],
+};
+const CAPABILITIES = [
+  { key:"training",   label:"Lead trainings" },
+  { key:"productRef",  label:"Product reference" },
+  { key:"webinars",    label:"Webinars" },
+  { key:"social",      label:"Social content" },
+  { key:"consult",     label:"Consult on R&D" },
+];
+const LEVEL_DEFAULTS = {
+  "Main":           { training:true,  productRef:true,  webinars:true,  social:true,  consult:true },
+  "Local Advocate": { training:false, productRef:true,  webinars:true,  social:true,  consult:false },
+  "Candidate": { training:false, productRef:false, webinars:false, social:false, consult:false },
+};
+
+/* ---------------------------- Region auto-detection ---------------------------- */
+const US_REGION_LABELS = ["Northeast","Southeast","Midwest","Southwest","West"];
+const REGIONS = [...US_REGION_LABELS.map(r => r + " (US)"), "Europe","Latin America","Middle East & Africa","CIS","Asia-Pacific","Other"];
+const US_REGIONS = new Set(US_REGION_LABELS.map(r => r + " (US)"));
+const COUNTRY_REGION_MAP = {
+  // Europe
+  "France":"Europe","United Kingdom":"Europe","Belgium":"Europe","Italy":"Europe","Netherlands":"Europe",
+  "Germany":"Europe","Switzerland":"Europe","Austria":"Europe","Norway":"Europe","Poland":"Europe",
+  "Hungary":"Europe","Lithuania":"Europe","Croatia":"Europe","Ireland":"Europe","Spain":"Europe",
+  "Portugal":"Europe","Sweden":"Europe","Denmark":"Europe","Finland":"Europe","Greece":"Europe",
+  "Czech Republic":"Europe","Romania":"Europe","Bulgaria":"Europe","Slovakia":"Europe","Slovenia":"Europe",
+  "Estonia":"Europe","Latvia":"Europe","Iceland":"Europe","Luxembourg":"Europe","Malta":"Europe","Cyprus":"Europe",
+  // CIS
+  "Russia":"CIS","Georgia":"CIS","Ukraine":"CIS","Belarus":"CIS","Kazakhstan":"CIS","Uzbekistan":"CIS",
+  "Armenia":"CIS","Azerbaijan":"CIS","Moldova":"CIS","Kyrgyzstan":"CIS","Tajikistan":"CIS","Turkmenistan":"CIS",
+  // Middle East & Africa
+  "Egypt":"Middle East & Africa","Jordan":"Middle East & Africa","Lebanon":"Middle East & Africa",
+  "United Arab Emirates":"Middle East & Africa","Iraq":"Middle East & Africa","Turkey":"Middle East & Africa",
+  "Tunisia":"Middle East & Africa","Morocco":"Middle East & Africa","Israel":"Middle East & Africa",
+  "Saudi Arabia":"Middle East & Africa","Qatar":"Middle East & Africa","Kuwait":"Middle East & Africa",
+  "Bahrain":"Middle East & Africa","Oman":"Middle East & Africa","South Africa":"Middle East & Africa",
+  "Nigeria":"Middle East & Africa","Kenya":"Middle East & Africa","Algeria":"Middle East & Africa",
+  // Asia-Pacific
+  "China":"Asia-Pacific","Taiwan":"Asia-Pacific","Philippines":"Asia-Pacific","Singapore":"Asia-Pacific",
+  "Japan":"Asia-Pacific","South Korea":"Asia-Pacific","India":"Asia-Pacific","Australia":"Asia-Pacific",
+  "New Zealand":"Asia-Pacific","Vietnam":"Asia-Pacific","Thailand":"Asia-Pacific","Malaysia":"Asia-Pacific",
+  "Indonesia":"Asia-Pacific","Hong Kong":"Asia-Pacific",
+  // Latin America
+  "Colombia":"Latin America","Argentina":"Latin America","Brazil":"Latin America","Mexico":"Latin America",
+  "Chile":"Latin America","Peru":"Latin America","Ecuador":"Latin America","Venezuela":"Latin America",
+  "Uruguay":"Latin America","Paraguay":"Latin America","Bolivia":"Latin America","Costa Rica":"Latin America",
+  "Panama":"Latin America","Guatemala":"Latin America",
+};
+const US_STATES = [
+  ["AL","Alabama","Southeast"],["AK","Alaska","West"],["AZ","Arizona","Southwest"],["AR","Arkansas","Southeast"],
+  ["CA","California","West"],["CO","Colorado","West"],["CT","Connecticut","Northeast"],["DE","Delaware","Southeast"],
+  ["FL","Florida","Southeast"],["GA","Georgia","Southeast"],["HI","Hawaii","West"],["ID","Idaho","West"],
+  ["IL","Illinois","Midwest"],["IN","Indiana","Midwest"],["IA","Iowa","Midwest"],["KS","Kansas","Midwest"],
+  ["KY","Kentucky","Southeast"],["LA","Louisiana","Southeast"],["ME","Maine","Northeast"],["MD","Maryland","Southeast"],
+  ["MA","Massachusetts","Northeast"],["MI","Michigan","Midwest"],["MN","Minnesota","Midwest"],["MS","Mississippi","Southeast"],
+  ["MO","Missouri","Midwest"],["MT","Montana","West"],["NE","Nebraska","Midwest"],["NV","Nevada","West"],
+  ["NH","New Hampshire","Northeast"],["NJ","New Jersey","Northeast"],["NM","New Mexico","Southwest"],["NY","New York","Northeast"],
+  ["NC","North Carolina","Southeast"],["ND","North Dakota","Midwest"],["OH","Ohio","Midwest"],["OK","Oklahoma","Southwest"],
+  ["OR","Oregon","West"],["PA","Pennsylvania","Northeast"],["RI","Rhode Island","Northeast"],["SC","South Carolina","Southeast"],
+  ["SD","South Dakota","Midwest"],["TN","Tennessee","Southeast"],["TX","Texas","Southwest"],["UT","Utah","West"],
+  ["VT","Vermont","Northeast"],["VA","Virginia","Southeast"],["WA","Washington","West"],["WV","West Virginia","Southeast"],
+  ["WI","Wisconsin","Midwest"],["WY","Wyoming","West"],["DC","District of Columbia","Southeast"],
+];
+const STATE_ABBR_REGEX = new RegExp(`\\b(${US_STATES.map(s=>s[0]).join("|")})\\b`, "i");
+
+// Country, when known, is the authoritative signal (avoids ambiguity like "Georgia" the
+// country vs. the US state). US state detection from the location text is only a fallback
+// for when country is "United States" or not yet set (legacy records).
+function deriveRegion(location, country) {
+  const c = (country || "").trim();
+  if (c && c.toLowerCase() !== "united states") {
+    return COUNTRY_REGION_MAP[c] || "Other";
+  }
+  const loc = (location || "").trim();
+  if (!loc) return "Other";
+  if (/washington,?\s*d\.?c\.?/i.test(loc)) return "Southeast (US)"; // DC special-case before "Washington" state match
+  const lower = loc.toLowerCase();
+  const fullNameHit = US_STATES.find(s => lower.includes(s[1].toLowerCase()));
+  if (fullNameHit) return fullNameHit[2] + " (US)";
+  const abbrMatch = loc.match(STATE_ABBR_REGEX);
+  if (abbrMatch) {
+    const hit = US_STATES.find(s => s[0] === abbrMatch[1].toUpperCase());
+    if (hit) return hit[2] + " (US)";
+  }
+  return "Other";
+}
+
+/* ---------------------------- Starter seed data ---------------------------- */
+const STARTER_DATA = [
+  { name:"Dr. Kelly Tanner", credentials:"Ph.D., RDH", type:"RDH", location:"Virginia", status:"Active",
+    bio:"Dr. Tanner's leadership roles in professional organizations and her focus on advancing the dental hygiene profession make her an influential advocate…",
+    website:"https://www.drkellytanner.com/", instagram:"https://www.instagram.com/drkellytanner", linkedin:"https://www.linkedin.com/in/kellygtanner/",
+    facebook:"https://www.facebook.com/kellytannerleadership/", email:"Kelly@rarebirdspeakers.com" },
+  { name:"Katrina M. Sanders", credentials:"RDH, BSDH, M.Ed, RF", type:"RDH", location:"", status:"Active", availableVirtually:true,
+    bio:"International Continuing Dental Education Speaker with a Bachelor's Degree in Dental Hygiene (BSDH) from the University of Minnesota and a Master's…",
+    photoUrl:"https://katrinasanders.com/wp-content/uploads/2022/04/SAINMkgM-scaled.jpg",
+    instagram:"https://www.instagram.com/thedentalwinegenist/", linkedin:"https://www.linkedin.com/in/katrina-m-sanders-rdh-bsdh-m-ed-rf-39547bb4/",
+    facebook:"https://www.facebook.com/TheDentalWINEgenist/", email:"katrina@katrinasanders.com", phone:"(612) 345-1150" },
+  { name:"Amanda Hill", credentials:"BSDH, RDH, CDIPC", type:"RDH", location:"Norfolk, Virginia", status:"Prospective",
+    bio:"Amanda Hill, BSDH, RDH, CDIPC, is an enthusiastic speaker, innovative consultant, and award-winning author. A sought-after thought leader contributing…",
+    website:"https://amandahillrdh.com", photoUrl:"https://www.amandahillrdh.com/assets/ahrdh/contact.jpg",
+    instagram:"https://www.instagram.com/amandahillrdh/", linkedin:"https://www.linkedin.com/in/amanda-hill-rdh-261167149/",
+    facebook:"https://www.facebook.com/amandahillrdh", email:"amandahillrdh@gmail.com" },
+  { name:"Caitlin Parsons", credentials:"RDH, E-RYT500, Registered Yoga Teacher, IAYT Certified Yoga Therapist, CEAS", type:"RDH", location:"", status:"Active",
+    bio:"With 17 years of experience as a Registered Dental Hygienist, she transformed her personal journey through chronic pain into a mission to support…",
+    photoUrl:"https://thealignedhygienist.com/wp-content/uploads/2024/04/Headshot.png",
+    instagram:"https://www.instagram.com/thealignedhygienist/", linkedin:"https://www.linkedin.com/in/caitlinparsons/", website:"https://thealignedhygienist.com/" },
+  { name:"Kristen Ranaldo", credentials:"BSDH, RDH", type:"RDH", location:"Long Island, NY", status:"Active",
+    bio:"Kristen Ranaldo, RDH, BSDH, is a dental hygienist who graduated top of her class from Farmingdale State College in New York in 2015, earning numerous…",
+    instagram:"https://www.instagram.com/thesubgingivalqueen/", email:"kristenranaldordh@gmail.com", phone:"(990) 491-3416" },
+  { name:"Irene Iancu", credentials:"RDH", type:"RDH", location:"Canada", status:"Active",
+    bio:"Irene Iancu is a Canadian RRDH and entrepreneur. With experience in various specialties like Pediatrics, Orthodontics, and Periodontics, she has combined…",
+    instagram:"https://www.instagram.com/toothlife.irene/", linkedin:"https://www.linkedin.com/in/ireneiancu/", facebook:"https://www.facebook.com/ToothLife.Irene/",
+    email:"irene@toothlifestudios.ca", phone:"(966) 693-7942", website:"https://linktr.ee/TOOTHLIFE.IRENE" },
+  { name:"Dr. Joy D. Void-Holmes", credentials:"RDH", type:"RDH", location:"Glenn Dale, MD", status:"Prospective",
+    bio:"I've spent 29 years in dentistry — front desk at 16, RDH since 1997, DHSc, former hygiene program chair, co-founder of JELL-ED, and creator of the P3…",
+    website:"https://drjoyrdh.com", email:"info@DrJoyRDH.com", photoUrl:"https://drjoyrdh.com/wp-content/uploads/2026/02/whitesuit800.png",
+    instagram:"https://www.instagram.com/drjoyrdh/", linkedin:"https://www.linkedin.com/in/dr-joy-void-holmes-5092222/",
+    facebook:"https://www.facebook.com/drjoyrdh", phone:"(443) 265-2527" },
+  { name:"Noel Paschke", credentials:"RDH", type:"RDH", location:"Londonderry, NH", status:"Active",
+    bio:"I'm a passionate and purpose-driven oral healthcare provider with a career that spans clinical care, education, product innovation, patient development…",
+    linkedin:"https://www.linkedin.com/in/noelpaschke/", email:"noel.ultrasonicsplus@gmail.com", phone:"(443) 540-4511" },
+  { name:"Susan Wingrove", credentials:"BS, RDH", type:"RDH", location:"Missoula, Montana", status:"Active", availableVirtually:true,
+    bio:"Susan Wingrove BS, RDH. International speaker, writer, and researcher. 2016 RDH Hygienist Award of Distinction and 2022 Western Society of…",
+    linkedin:"https://www.linkedin.com/in/susan-wingrove-80a25411/", email:"sswinrdh@gmail.com", phone:"(406) 529-5243", website:"https://wingrovedynamics.com/" },
+  { name:"Marianna Dryer", credentials:"RDH, M.Ed", type:"RDH", location:"Cape Cod, MA", status:"Prospective", availableVirtually:true,
+    bio:"Marianna Dryer, RDH, M.Ed. is a dynamic national and international speaker, published author, and dental hygiene educator known for her expertise in…",
+    website:"https://mariannedryer.com", photoUrl:"https://mariannedryer.com/wp-content/uploads/Marianne-Dryer-2026.jpg",
+    instagram:"https://www.instagram.com/ultrasonicwhisperer/", linkedin:"https://www.linkedin.com/in/marianne-dryer-88a47391/",
+    email:"mdryer@capecod.edu", phone:"(774) 330-4628" },
+  { name:"Alison Stahl", credentials:"RDH", type:"RDH", location:"", status:"Prospective",
+    bio:"RDH, past Acteon clinical trainer, works for Clear Choice as an implant maintenance KOL." },
+  { name:"Amanda Auger", credentials:"RDH", type:"RDH", location:"", status:"Prospective", bio:"" },
+  { name:"Lynn Pencek", credentials:"RDH, BSDH", type:"RDH", location:"NJ", status:"Prospective",
+    bio:"Works 1099 for Bio Dental and Implants Speaker on implants. Has partnered with Kristen Ranaldo." },
+  { name:"Dr. Andrew Currie", credentials:"GP", type:"Dentist", specialty:"General Dentist", location:"" },
+  { name:"Dr. Igor Borisov", credentials:"GP", type:"Dentist", specialty:"General Dentist", location:"Phoenix, AZ", instagram:"https://www.instagram.com/drborisovi/" },
+  { name:"Dr. Joey Arcay", credentials:"GP", type:"Dentist", specialty:"General Dentist", location:"South Florida" },
+  { name:"Dr. Jonathan Austin", credentials:"GP", type:"Dentist", specialty:"General Dentist", location:"Charlotte, NC" },
+  { name:"Dr. Steven Vorholt", credentials:"", type:"Dentist", specialty:"General Dentist", location:"" },
+  { name:"Dr. Andrew Miller", credentials:"", type:"Dentist", specialty:"General Dentist", location:"" },
+  { name:"Dr. Justin Moody", credentials:"", type:"Dentist", specialty:"General Dentist", location:"" },
+  { name:"Dr. Todd Engel", credentials:"", type:"Dentist", specialty:"General Dentist", location:"" },
+];
+
+/* ---------------------------- State ---------------------------- */
+let allKols = [];
+let allEmployees = [];
+let currentUser = null;
+let editingId = null;
+let viewingId = null;
+let activeFilters = { type:new Set(), level:new Set(), specialty:new Set(), product:new Set(), primaryRep:new Set(), availability:new Set(), region:new Set(), country:new Set(), mainKolApprovalStatus:new Set() };
+
+/* ---------------------------- Auth wiring ---------------------------- */
+window.showSignup = () => { document.getElementById("loginPane").style.display="none"; document.getElementById("signupPane").style.display="block"; };
+window.showLogin = () => { document.getElementById("signupPane").style.display="none"; document.getElementById("loginPane").style.display="block"; };
+
+window.doLogin = async () => {
+  const email = document.getElementById("loginEmail").value.trim();
+  const pw = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("loginError");
+  errEl.style.display = "none";
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+  } catch (e) {
+    errEl.textContent = friendlyAuthError(e);
+    errEl.style.display = "block";
+  }
+};
+
+const ALLOWED_SIGNUP_DOMAIN = "acteongroup.com";
+
+window.doSignup = async () => {
+  const name = document.getElementById("signupName").value.trim();
+  const email = document.getElementById("signupEmail").value.trim();
+  const pw = document.getElementById("signupPassword").value;
+  const errEl = document.getElementById("signupError");
+  errEl.style.display = "none";
+  if (!name) { errEl.textContent = "Please enter your name."; errEl.style.display="block"; return; }
+  if (!email.toLowerCase().endsWith("@" + ALLOWED_SIGNUP_DOMAIN)) {
+    errEl.textContent = `Sign-up is limited to @${ALLOWED_SIGNUP_DOMAIN} email addresses.`;
+    errEl.style.display = "block";
+    return;
+  }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    await updateProfile(cred.user, { displayName: name });
+    // Verification email itself is sent by autoSendVerificationOnce() when onAuthStateChanged
+    // fires right after this (account creation auto-signs the user in) — not here, to avoid
+    // sending two emails for one signup.
+  } catch (e) {
+    errEl.textContent = friendlyAuthError(e);
+    errEl.style.display = "block";
+  }
+};
+
+window.doSignOut = () => signOut(auth);
+
+// Fires once automatically when an unverified user lands on the verify screen (covers
+// people signing in to an account that predates the email-verification feature, since
+// sendEmailVerification was previously only called from doSignup). Guarded by sessionStorage
+// so a page reload doesn't re-send on every visit within the same browser session.
+async function autoSendVerificationOnce(user) {
+  const key = "verifyEmailSent_" + user.uid;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, "1");
+  try {
+    await sendEmailVerification(user);
+    document.getElementById("verifyStatus").textContent = "Verification email sent — check your inbox (and spam folder).";
+  } catch (e) {
+    document.getElementById("verifyError").textContent = friendlyAuthError(e);
+    document.getElementById("verifyError").style.display = "block";
+  }
+}
+
+window.resendVerificationEmail = async () => {
+  const statusEl = document.getElementById("verifyStatus");
+  const errEl = document.getElementById("verifyError");
+  errEl.style.display = "none";
+  try {
+    await sendEmailVerification(auth.currentUser);
+    statusEl.textContent = "Verification email sent — check your inbox (and spam folder).";
+  } catch (e) {
+    errEl.textContent = friendlyAuthError(e);
+    errEl.style.display = "block";
+  }
+};
+
+window.checkVerified = async () => {
+  const errEl = document.getElementById("verifyError");
+  errEl.style.display = "none";
+  await auth.currentUser.reload();
+  if (auth.currentUser.emailVerified) {
+    showVerifiedApp(auth.currentUser);
+  } else {
+    errEl.textContent = "Still not verified — click the link in the email first, then try again.";
+    errEl.style.display = "block";
+  }
+};
+
+function showVerifiedApp(user) {
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("verifyScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("repName").textContent = user.displayName || "Rep";
+  document.getElementById("repAvatar").textContent = (user.displayName || "Rep").charAt(0).toUpperCase();
+  startListening();
+  startListeningEmployees();
+  ensureSelfInEmployees(user);
+}
+
+window.editDisplayName = async () => {
+  const current = currentUser.displayName || "";
+  const name = prompt("Your display name:", current);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === current) return;
+  try {
+    await updateProfile(auth.currentUser, { displayName: trimmed });
+    document.getElementById("repName").textContent = trimmed;
+    document.getElementById("repAvatar").textContent = trimmed.charAt(0).toUpperCase();
+    if (currentUser.email) syncEmployee(trimmed, currentUser.email).catch(() => {});
+  } catch (e) {
+    alert("Couldn't update your name: " + e.message);
+  }
+};
+
+function friendlyAuthError(e) {
+  const code = e.code || "";
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "Incorrect email or password.";
+  if (code.includes("email-already-in-use")) return "An account with that email already exists — try signing in.";
+  if (code.includes("weak-password")) return "Password should be at least 6 characters.";
+  if (code.includes("invalid-email")) return "That doesn't look like a valid email address.";
+  if (code.includes("too-many-requests")) return "Too many attempts — please wait a bit before trying again.";
+  return "Something went wrong. Please try again.";
+}
+
+if (isConfigured) {
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    if (user && user.emailVerified) {
+      document.getElementById("verifyScreen").style.display = "none";
+      showVerifiedApp(user);
+    } else if (user) {
+      document.getElementById("authScreen").style.display = "none";
+      document.getElementById("app").style.display = "none";
+      document.getElementById("verifyEmailAddr").textContent = user.email || "";
+      document.getElementById("verifyStatus").textContent = "";
+      document.getElementById("verifyScreen").style.display = "flex";
+      autoSendVerificationOnce(user);
+    } else {
+      document.getElementById("app").style.display = "none";
+      document.getElementById("verifyScreen").style.display = "none";
+      document.getElementById("authScreen").style.display = "flex";
+    }
+  });
+}
+
+/* ---------------------------- Firestore live sync ---------------------------- */
+let unsub = null;
+function startListening() {
+  if (unsub) return;
+  const q = query(collection(db, "kols"), orderBy("name"));
+  unsub = onSnapshot(q, (snap) => {
+    allKols = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    buildFilterChips();
+    renderStats();
+    renderGrid();
+    backfillMissingRegions();
+    backfillMissingCountries();
+    backfillStaleRegions();
+    backfillRenamedUSRegions();
+    backfillMainKolApprovalStatus();
+    backfillRenamedLevels();
+    queueMissingGeo();
+    if (mapViewOpen) renderKolMap();
+  });
+}
+
+/* ---------------------------- Employees (Acteon Contact picklist) ---------------------------- */
+let employeesUnsub = null;
+let employeesSeedAttempted = false;
+
+function startListeningEmployees() {
+  if (employeesUnsub) return;
+  const q = query(collection(db, "employees"), orderBy("name"));
+  employeesUnsub = onSnapshot(q, (snap) => {
+    allEmployees = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if (!allEmployees.length && !employeesSeedAttempted) {
+      employeesSeedAttempted = true;
+      seedEmployees();
+    }
+    renderEmployeesDatalist();
+    buildFilterChips();
+  });
+}
+
+// Seeds the "employees" collection from SEED_EMPLOYEES. Uses the (lowercased) email as the
+// doc ID so this is idempotent — safe even if multiple reps' browsers race to seed at once,
+// since they all converge on the same doc IDs instead of creating duplicates.
+async function seedEmployees() {
+  for (const emp of SEED_EMPLOYEES) {
+    try {
+      await setDoc(doc(db, "employees", emp.email.toLowerCase()), { name: emp.name, email: emp.email.toLowerCase() }, { merge:true });
+    } catch (e) {
+      console.error("Failed to seed employee", emp.name, e);
+    }
+  }
+}
+
+function renderEmployeesDatalist() {
+  const el = document.getElementById("acteonEmployeesList");
+  if (!el) return;
+  el.innerHTML = allEmployees.map(e => `<option value="${escapeHtml(e.name)}"></option>`).join("");
+}
+
+function matchEmployeeByName(name) {
+  const norm = (name || "").trim().toLowerCase();
+  if (!norm) return null;
+  return allEmployees.find(e => e.name.toLowerCase() === norm) || null;
+}
+
+function matchEmployeeByEmail(email) {
+  const norm = (email || "").trim().toLowerCase();
+  if (!norm) return null;
+  return allEmployees.find(e => (e.email || "").toLowerCase() === norm) || null;
+}
+
+// Upserts a person into the employees collection, keyed by (lowercased) email so it's
+// idempotent. Used both to auto-add every signed-in user and to add a new Acteon Contact
+// on the fly from the KOL form.
+async function syncEmployee(name, email) {
+  const norm = (email || "").trim().toLowerCase();
+  if (!norm || !name) return;
+  await setDoc(doc(db, "employees", norm), { name: name.trim(), email: norm }, { merge:true });
+}
+
+// Every signed-in user is automatically added to (or refreshed in) the employees list,
+// so they always show up as a pickable Acteon Contact and "My KOLs" can match them —
+// no manual admin step required. Guarded per-session so it's not re-written on every load.
+async function ensureSelfInEmployees(user) {
+  if (!user.email) return;
+  const key = "employeeSynced_" + user.uid;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, "1");
+  try { await syncEmployee(user.displayName || user.email, user.email); }
+  catch (e) { console.error("Couldn't add self to employees list:", e); }
+}
+
+// Renames level values from any prior scheme (see LEGACY_LEVEL_VALUES / normalizeLevel) to
+// whatever LEVELS currently holds, for any KOL saved before the latest rename shipped.
+let levelRenameInFlight = new Set();
+function backfillRenamedLevels() {
+  allKols.forEach(k => {
+    if (LEGACY_LEVEL_VALUES.has(k.level) && !levelRenameInFlight.has(k.id)) {
+      levelRenameInFlight.add(k.id);
+      updateDoc(doc(db, "kols", k.id), { level: normalizeLevel(k.level) }).catch(() => {});
+    }
+  });
+}
+
+/* ---------------------------- Map geocoding (one-time, self-healing) ----------------------------
+   KOLs only have free-text Location/Country, not coordinates. To plot them on the map, each KOL
+   is geocoded exactly once via OpenStreetMap's free Nominatim API (no key required) and the
+   result is cached permanently on the doc (geoLat/geoLng/geoSource), so this cost is paid once
+   per KOL ever — not per page load, not per user. Nominatim asks for max ~1 request/second, so
+   this runs as a slow background queue; existing KOLs will gain pins gradually rather than all
+   at once. If a query can't be geocoded, it falls back to the KOL's country centroid, and only
+   gives up entirely (geoSource:"none") if there's no country either. */
+let geoQueue = [];
+let geoQueueRunning = false;
+let geoQueuedIds = new Set();
+
+function queueMissingGeo() {
+  allKols.forEach(k => {
+    if (k.geoLat === undefined && !geoQueuedIds.has(k.id)) {
+      geoQueuedIds.add(k.id);
+      geoQueue.push(k.id);
+    }
+  });
+  runGeoQueue();
+}
+
+async function runGeoQueue() {
+  if (geoQueueRunning) return;
+  geoQueueRunning = true;
+  while (geoQueue.length) {
+    const id = geoQueue.shift();
+    const k = allKols.find(x => x.id === id);
+    if (k) await geocodeOneKol(k).catch(() => {});
+    await new Promise(r => setTimeout(r, 1100)); // stay under Nominatim's ~1 req/sec fair-use limit
+  }
+  geoQueueRunning = false;
+}
+
+async function geocodeOneKol(k) {
+  const queryText = [k.location, k.country].filter(Boolean).join(", ");
+  if (!queryText) {
+    await updateDoc(doc(db, "kols", k.id), { geoLat: null, geoLng: null, geoSource: "none" });
+    return;
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(queryText)}`;
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const results = res.ok ? await res.json() : [];
+    if (results && results[0]) {
+      await updateDoc(doc(db, "kols", k.id), {
+        geoLat: parseFloat(results[0].lat), geoLng: parseFloat(results[0].lon), geoSource: "geocoded",
+      });
+      return;
+    }
+  } catch (e) {
+    console.error("Geocoding failed for", k.name, e);
+  }
+  // Fall back to the country centroid if the specific location didn't resolve.
+  const centroid = COUNTRY_CENTROIDS[k.country];
+  if (centroid) {
+    await updateDoc(doc(db, "kols", k.id), { geoLat: centroid[0], geoLng: centroid[1], geoSource: "country-centroid" });
+  } else {
+    await updateDoc(doc(db, "kols", k.id), { geoLat: null, geoLng: null, geoSource: "none" });
+  }
+}
+
+// One-time self-heal: Main KOLs saved before the approval workflow existed have no
+// mainKolApprovalStatus field. Grandfather them in as "approved" so they don't suddenly
+// show up as pending once this feature ships.
+let approvalBackfillInFlight = new Set();
+function backfillMainKolApprovalStatus() {
+  allKols.forEach(k => {
+    if (k.level === "Main" && k.mainKolApprovalStatus === undefined && !approvalBackfillInFlight.has(k.id)) {
+      approvalBackfillInFlight.add(k.id);
+      updateDoc(doc(db, "kols", k.id), { mainKolApprovalStatus: "approved" }).catch(() => {});
+    }
+  });
+}
+
+// One-time self-heal: any KOL saved before the Region feature existed won't have
+// a stored region yet. Quietly compute and save it in the background so filtering works for everyone.
+let backfillInFlight = new Set();
+function backfillMissingRegions() {
+  allKols.forEach(k => {
+    if (k.region === undefined && !backfillInFlight.has(k.id)) {
+      backfillInFlight.add(k.id);
+      updateDoc(doc(db, "kols", k.id), { region: deriveRegion(k.location, k.country) }).catch(() => {});
+    }
+  });
+}
+
+// Same idea for Country: pre-Country-feature US KOLs get defaulted to "United States"
+// based on their already-derived region. International records are left blank rather
+// than guessed, since there's no reliable signal for which country they're in.
+let countryBackfillInFlight = new Set();
+function backfillMissingCountries() {
+  allKols.forEach(k => {
+    if (k.country === undefined && !countryBackfillInFlight.has(k.id)) {
+      countryBackfillInFlight.add(k.id);
+      const region = k.region || deriveRegion(k.location, k.country);
+      const country = (US_REGIONS.has(region) || US_REGION_LABELS.includes(region)) ? "United States" : "";
+      updateDoc(doc(db, "kols", k.id), { country }).catch(() => {});
+    }
+  });
+}
+
+// One-time migration: records saved under the old region scheme (before this expanded
+// international taxonomy existed) have region:"International / Other" baked in. Re-derive
+// them now that Country data can place them in a real bucket (Europe, CIS, etc.).
+let staleRegionBackfillInFlight = new Set();
+function backfillStaleRegions() {
+  allKols.forEach(k => {
+    if (k.region === "International / Other" && !staleRegionBackfillInFlight.has(k.id)) {
+      staleRegionBackfillInFlight.add(k.id);
+      updateDoc(doc(db, "kols", k.id), { region: deriveRegion(k.location, k.country) }).catch(() => {});
+    }
+  });
+}
+
+// One-time migration: US sub-regions used to be stored bare ("Northeast") before the
+// " (US)" suffix was added to disambiguate them from the international regions.
+let usRegionRenameInFlight = new Set();
+function backfillRenamedUSRegions() {
+  allKols.forEach(k => {
+    if (US_REGION_LABELS.includes(k.region) && !usRegionRenameInFlight.has(k.id)) {
+      usRegionRenameInFlight.add(k.id);
+      updateDoc(doc(db, "kols", k.id), { region: k.region + " (US)" }).catch(() => {});
+    }
+  });
+}
+
+async function seedStarterData() {
+  for (const rec of STARTER_DATA) {
+    await addDoc(collection(db, "kols"), {
+      name: rec.name || "",
+      credentials: rec.credentials || "",
+      type: rec.type || "Dentist",
+      specialties: rec.specialty ? [rec.specialty] : (rec.specialties || []),
+      location: rec.location || "",
+      region: deriveRegion(rec.location || "", rec.country || "United States"),
+      country: rec.country || "United States",
+      primaryRep: rec.primaryRep || "",
+      level: "",
+      capabilities: {},
+      products: [],
+      status: rec.status || "",
+      availableVirtually: rec.availableVirtually || false,
+      travelsNationally: rec.travelsNationally || false,
+      royaltiesContract: rec.royaltiesContract || false,
+      englishSpeaking: rec.englishSpeaking || false,
+      mainKolApprovalStatus: "", // starter/import data isn't run through the approval flow
+      bio: rec.bio || "",
+      acteonActivities: rec.acteonActivities || "",
+      email: rec.email || "",
+      phone: rec.phone || "",
+      linkedin: rec.linkedin || "",
+      instagram: rec.instagram || "",
+      facebook: rec.facebook || "",
+      website: rec.website || "",
+      photoUrl: rec.photoUrl || "",
+      documentUrl: "",
+      documentName: "",
+      addedBy: currentUser ? (currentUser.displayName || currentUser.email) : "Starter import",
+      createdAt: serverTimestamp(),
+    });
+  }
+}
+
+// One-time utility for the Aug 2026 international KOL import (kol_import_batch.json,
+// transformed from "KOL database.xlsx"). Run from the browser console while signed in:
+//   importExcelBatch({ dryRun: true })   // preview only, writes nothing
+//   importExcelBatch()                   // actually writes to Firestore
+// Skips any record whose email already exists in allKols, so it's safe to re-run.
+window.importExcelBatch = async ({ dryRun = false } = {}) => {
+  const res = await fetch("./kol_import_batch.json");
+  const records = await res.json();
+  const existingEmails = new Set(allKols.map(k => (k.email || "").trim().toLowerCase()).filter(Boolean));
+
+  const toImport = records.filter(rec => {
+    const email = (rec.email || "").trim().toLowerCase();
+    return !email || !existingEmails.has(email);
+  });
+  const skipped = records.length - toImport.length;
+
+  console.log(`importExcelBatch: ${records.length} records in file, ${skipped} already present (by email), ${toImport.length} to ${dryRun ? "preview" : "import"}.`);
+  if (dryRun) {
+    console.table(toImport.slice(0, 10));
+    return { total: records.length, skipped, wouldImport: toImport.length };
+  }
+
+  if (!confirm(`Import ${toImport.length} new KOLs from kol_import_batch.json? (${skipped} skipped as already present)`)) {
+    return;
+  }
+
+  let written = 0, failed = 0;
+  for (const rec of toImport) {
+    try {
+      await addDoc(collection(db, "kols"), {
+        name: rec.name || "",
+        credentials: rec.credentials || "",
+        type: rec.type || "Dentist",
+        specialties: rec.specialty ? [rec.specialty] : (rec.specialties || []),
+        location: rec.location || "",
+        region: deriveRegion(rec.location || "", rec.country || ""),
+        country: rec.country || "",
+        primaryRep: rec.primaryRep || "",
+        level: normalizeLevel(rec.level),
+        capabilities: {},
+        products: rec.products || [],
+        status: rec.status || "",
+        availableVirtually: false,
+        travelsNationally: false,
+        royaltiesContract: rec.royaltiesContract || false,
+        englishSpeaking: rec.englishSpeaking || false,
+        // Bulk-imported Main KOLs are treated as already approved (this is a historical
+        // migration, not a new addition going through the approval flow).
+        mainKolApprovalStatus: normalizeLevel(rec.level) === "Main" ? "approved" : "",
+        bio: rec.bio || "",
+        acteonActivities: rec.acteonActivities || "",
+        email: rec.email || "",
+        phone: rec.phone || "",
+        linkedin: rec.linkedin || "",
+        instagram: rec.instagram || "",
+        facebook: rec.facebook || "",
+        website: rec.website || "",
+        photoUrl: "",
+        documentUrl: "",
+        documentName: "",
+        addedBy: rec.addedBy || (currentUser ? (currentUser.displayName || currentUser.email) : "Excel import"),
+        createdAt: serverTimestamp(),
+      });
+      written++;
+    } catch (e) {
+      failed++;
+      console.error("Failed to import", rec.name, e);
+    }
+  }
+  const summary = `Imported ${written} KOLs. ${skipped} skipped (already present). ${failed} failed.`;
+  console.log(summary);
+  alert(summary);
+  return { written, skipped, failed };
+};
+
+/* ---------------------------- Stats ---------------------------- */
+function renderStats() {
+  const total = allKols.length;
+  const main = allKols.filter(k => k.level === "Main").length;
+  const localAdvocate = allKols.filter(k => k.level === "Local Advocate").length;
+  const candidate = allKols.filter(k => k.level === "Candidate").length;
+  const dentists = allKols.filter(k => k.type === "Dentist").length;
+  const rdh = allKols.filter(k => k.type === "RDH").length;
+  const pendingApprovals = allKols.filter(k => k.level === "Main" && k.mainKolApprovalStatus === "pending").length;
+  const el = document.getElementById("statsRow");
+  const isTotalSelected = !activeFilters.type.size && !activeFilters.level.size;
+  const sel = (key, val) => activeFilters[key].size===1 && activeFilters[key].has(val) ? "selected" : "";
+  el.innerHTML = `
+    <button class="stat-card ${isTotalSelected?'selected':''}" onclick="clearFilters()"><div class="label">Total KOLs</div><div class="val">${total}</div><div class="sub">across all products</div></button>
+    <button class="stat-card gold ${sel('level','Main')}" onclick="setSingleFilter('level','Main')"><div class="label">Main KOLs</div><div class="val">${main}</div><div class="sub">training · webinars · R&amp;D</div></button>
+    <button class="stat-card ${sel('level','Local Advocate')}" onclick="setSingleFilter('level','Local Advocate')"><div class="label">Local Advocate KOLs</div><div class="val">${localAdvocate}</div><div class="sub">webinars · social · reference</div></button>
+    <button class="stat-card ${sel('level','Candidate')}" onclick="setSingleFilter('level','Candidate')"><div class="label">Candidate KOLs</div><div class="val">${candidate}</div><div class="sub">not yet active with Acteon</div></button>
+    <button class="stat-card ${sel('type','Dentist')}" onclick="setSingleFilter('type','Dentist')"><div class="label">Dentists</div><div class="val">${dentists}</div><div class="sub">by specialty</div></button>
+    <button class="stat-card ${sel('type','RDH')}" onclick="setSingleFilter('type','RDH')"><div class="label">RDH</div><div class="val">${rdh}</div><div class="sub">registered hygienists</div></button>
+    <button class="stat-card gold ${sel('mainKolApprovalStatus','pending')}" onclick="setSingleFilter('mainKolApprovalStatus','pending')"><div class="label">Pending Approval</div><div class="val">${pendingApprovals}</div><div class="sub">Main KOLs awaiting sign-off</div></button>
+  `;
+  renderBreakdowns();
+}
+
+/* ---------------------------- Breakdown sub-header ---------------------------- */
+function countBy(values, matchFn) {
+  return values
+    .map(v => ({ label: v, count: allKols.filter(k => matchFn(k, v)).length }))
+    .filter(x => x.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+function breakdownCardHtml(title, filterKey, items) {
+  const rows = items.length
+    ? items.map(item => {
+        const active = activeFilters[filterKey].has(item.label);
+        return `<button class="breakdown-item ${active?'active':''}" onclick="toggleFilter('${filterKey}','${jsAttr(item.label)}')">
+          <span>${escapeHtml(item.label)}</span>
+          <span class="cnt">${item.count}</span>
+        </button>`;
+      }).join("")
+    : `<div class="breakdown-empty">No data yet</div>`;
+  return `<div class="breakdown-card"><h3>${escapeHtml(title)}</h3><div class="breakdown-list">${rows}</div></div>`;
+}
+
+let breakdownCollapsed = localStorage.getItem("kolBreakdownCollapsed") === "true";
+
+function applyBreakdownCollapsedState() {
+  document.getElementById("breakdownRow").classList.toggle("collapsed", breakdownCollapsed);
+  document.getElementById("breakdownToggle").classList.toggle("collapsed", breakdownCollapsed);
+}
+applyBreakdownCollapsedState();
+
+window.toggleBreakdownSection = () => {
+  breakdownCollapsed = !breakdownCollapsed;
+  localStorage.setItem("kolBreakdownCollapsed", String(breakdownCollapsed));
+  applyBreakdownCollapsedState();
+};
+
+function renderBreakdowns() {
+  const el = document.getElementById("breakdownRow");
+  if (!el) return;
+  const byProduct = countBy(PRODUCTS, (k, v) => (k.products || []).includes(v));
+  const bySpecialty = countBy(SPECIALTIES, (k, v) => getSpecialties(k).includes(v));
+  const byRegion = countBy(REGIONS, (k, v) => k.region === v);
+  const byCountry = countBy(getDistinctCountries(), (k, v) => k.country === v);
+  el.innerHTML = [
+    breakdownCardHtml("KOLs by Product", "product", byProduct),
+    breakdownCardHtml("KOLs by Specialty", "specialty", bySpecialty),
+    breakdownCardHtml("KOLs by Region", "region", byRegion),
+    breakdownCardHtml("KOLs by Country", "country", byCountry),
+  ].join("");
+}
+
+// Sets a filter group to contain exactly one value; clicking the same stat again clears it (toggle).
+window.setSingleFilter = (key, val) => {
+  if (activeFilters[key].size === 1 && activeFilters[key].has(val)) {
+    activeFilters[key].clear();
+  } else {
+    activeFilters[key].clear();
+    activeFilters[key].add(val);
+  }
+  buildFilterChips();
+  renderStats();
+  renderGrid();
+};
+
+
+/* ---------------------------- Filters ---------------------------- */
+const DROPDOWN_CONFIG = {
+  specialty:  { values: SPECIALTIES, key: "specialty",  label: "Specialty" },
+  product:    { values: PRODUCTS,    key: "product",    label: "Products" },
+  region:     { values: REGIONS,     key: "region",     label: "Region" },
+  country:    { values: () => getDistinctCountries(),          key: "country",    label: "Country" },
+  primaryRep: { values: () => allEmployees.map(e => e.name).sort((a,b) => a.localeCompare(b)), key: "primaryRep", label: "Acteon Contact" },
+};
+let openDropdown = null;
+
+function getDistinctCountries() {
+  return [...new Set(allKols.map(k => k.country).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+}
+
+function buildFilterChips() {
+  Object.keys(DROPDOWN_CONFIG).forEach(renderDropdownPanel);
+  renderActiveChips();
+  renderMyKolsToggleState();
+}
+
+function renderDropdownPanel(ddId) {
+  const cfg = DROPDOWN_CONFIG[ddId];
+  const panel = document.getElementById(`ddPanel-${ddId}`);
+  const trigger = document.getElementById(`ddTrigger-${ddId}`);
+  const countEl = document.getElementById(`ddCount-${ddId}`);
+  const activeSet = activeFilters[cfg.key];
+  const values = typeof cfg.values === "function" ? cfg.values() : cfg.values;
+
+  panel.innerHTML = values.map(v => {
+    const checked = activeSet.has(v);
+    return `<label class="dd-option" onclick="event.stopPropagation()">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleFilter('${cfg.key}','${jsAttr(v)}')" />
+      ${escapeHtml(v)}
+    </label>`;
+  }).join("") || `<div style="padding:8px 10px;font-size:12.5px;color:#9AA8B0;">None yet</div>`;
+
+  if (activeSet.size > 0) {
+    trigger.classList.add("has-selection");
+    countEl.style.display = "inline-block";
+    countEl.textContent = activeSet.size;
+  } else {
+    trigger.classList.remove("has-selection");
+    countEl.style.display = "none";
+  }
+}
+
+function renderActiveChips() {
+  const el = document.getElementById("activeChips");
+  const chips = [];
+  Object.values(DROPDOWN_CONFIG).forEach(cfg => {
+    activeFilters[cfg.key].forEach(v => chips.push({ key: cfg.key, val: v }));
+  });
+  if (!chips.length) { el.innerHTML = ""; return; }
+  el.innerHTML = chips.map(c => `
+    <span class="active-chip">
+      ${escapeHtml(c.val)}
+      <button onclick="toggleFilter('${c.key}','${jsAttr(c.val)}')" title="Remove filter">✕</button>
+    </span>
+  `).join("");
+}
+
+window.toggleDropdown = (ddId) => {
+  const panel = document.getElementById(`ddPanel-${ddId}`);
+  const trigger = document.getElementById(`ddTrigger-${ddId}`);
+  const isOpen = panel.classList.contains("open");
+  // close all
+  Object.keys(DROPDOWN_CONFIG).forEach(id => {
+    document.getElementById(`ddPanel-${id}`).classList.remove("open");
+    document.getElementById(`ddTrigger-${id}`).classList.remove("open");
+  });
+  if (!isOpen) {
+    panel.classList.add("open");
+    trigger.classList.add("open");
+    openDropdown = ddId;
+  } else {
+    openDropdown = null;
+  }
+};
+
+document.addEventListener("click", (e) => {
+  if (openDropdown && !e.target.closest(".dropdown-filter")) {
+    document.getElementById(`ddPanel-${openDropdown}`).classList.remove("open");
+    document.getElementById(`ddTrigger-${openDropdown}`).classList.remove("open");
+    openDropdown = null;
+  }
+});
+
+function renderMyKolsToggleState() {
+  const btn = document.getElementById("myKolsToggle");
+  if (!btn) return;
+  const match = currentUser && matchEmployeeByEmail(currentUser.email);
+  const active = !!match && activeFilters.primaryRep.size === 1 && activeFilters.primaryRep.has(match.name);
+  btn.classList.toggle("has-selection", active);
+}
+
+window.toggleMyKols = () => {
+  const match = currentUser && matchEmployeeByEmail(currentUser.email);
+  if (!match) {
+    alert("Your sign-in email isn't linked to anyone in the Acteon employee list yet — ask an admin to add you.");
+    return;
+  }
+  setSingleFilter("primaryRep", match.name);
+};
+
+window.toggleFilter = (key, val) => {
+  if (activeFilters[key].has(val)) activeFilters[key].delete(val);
+  else activeFilters[key].add(val);
+  buildFilterChips();
+  renderStats();
+  renderGrid();
+};
+
+window.clearFilters = () => {
+  Object.values(activeFilters).forEach(s => s.clear());
+  buildFilterChips();
+  renderStats();
+  renderGrid();
+};
+
+/* ---------------------------- Grid render ---------------------------- */
+// Specialty used to be a single string field; it's now a multi-select array (specialties).
+// This falls back to wrapping the legacy value so old records keep working without a migration.
+function getSpecialties(k) {
+  return k.specialties || (k.specialty ? [k.specialty] : []);
+}
+
+function matchesFilters(k) {
+  const f = activeFilters;
+  if (f.type.size && !f.type.has(k.type)) return false;
+  if (f.level.size && !f.level.has(k.level)) return false;
+  if (f.primaryRep.size && !f.primaryRep.has(k.primaryRep)) return false;
+  if (f.region.size && !f.region.has(k.region)) return false;
+  if (f.country.size && !f.country.has(k.country)) return false;
+  if (f.mainKolApprovalStatus.size && !f.mainKolApprovalStatus.has(k.mainKolApprovalStatus)) return false;
+  if (f.product.size) {
+    const prods = k.products || [];
+    let hasOne = false;
+    for (const p of f.product) if (prods.includes(p)) hasOne = true;
+    if (!hasOne) return false;
+  }
+  if (f.specialty.size) {
+    const specs = getSpecialties(k);
+    let hasOne = false;
+    for (const s of f.specialty) if (specs.includes(s)) hasOne = true;
+    if (!hasOne) return false;
+  }
+  return true;
+}
+
+function matchesSearch(k, term) {
+  if (!term) return true;
+  const hay = [k.name, k.credentials, k.bio, k.location, k.region, k.country, k.primaryRep, ...getSpecialties(k)].join(" ").toLowerCase();
+  return hay.includes(term.toLowerCase());
+}
+
+function getFilteredList() {
+  const term = document.getElementById("searchInput") ? document.getElementById("searchInput").value : "";
+  return allKols.filter(k => matchesFilters(k) && matchesSearch(k, term));
+}
+
+window.renderGrid = () => {
+  const list = getFilteredList();
+  document.getElementById("resultCount").textContent = `${list.length} of ${allKols.length} KOLs`;
+  const grid = document.getElementById("grid");
+
+  if (!allKols.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <h3>No KOLs yet</h3>
+        <p>Start by loading the starter dataset, or add your first KOL.</p>
+        <button class="btn btn-cyan" onclick="seedStarterData()">Load starter data</button>
+        <button class="btn btn-ghost" style="margin-left:8px;" onclick="openAddModal()">Add KOL</button>
+      </div>`;
+  } else if (!list.length) {
+    grid.innerHTML = `<div class="empty-state"><h3>No matches</h3><p>Try adjusting your filters or search.</p></div>`;
+  } else {
+    grid.innerHTML = list.map(cardHtml).join("");
+  }
+  renderTable(list);
+};
+window.seedStarterData = seedStarterData;
+
+/* ---------------------------- Filtered Excel export ---------------------------- */
+window.exportFilteredExcel = async () => {
+  const btn = document.getElementById("exportBtn");
+  const originalLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = "Exporting…";
+  try {
+    const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs");
+    const list = getFilteredList();
+    const rows = list.map(k => ({
+      "Name": k.name || "",
+      "Credentials": k.credentials || "",
+      "Type": k.type || "",
+      "Specialty": getSpecialties(k).join(", "),
+      "Level": k.level || "",
+      "Main KOL Approval": k.level === "Main" ? (k.mainKolApprovalStatus || "") : "",
+      "Products": (k.products || []).join(", "),
+      "Acteon Contact": k.primaryRep || "",
+      "Location": k.location || "",
+      "Country": k.country || "",
+      "Region": k.region || "",
+      "Status": k.status || "",
+      "Available Virtually": k.availableVirtually ? "Yes" : "No",
+      "Travels Nationally": k.travelsNationally ? "Yes" : "No",
+      "English Speaking": k.englishSpeaking ? "Yes" : "No",
+      "Royalties Contract": k.royaltiesContract ? "Yes" : "No",
+      "Bio": k.bio || "",
+      "Acteon Activities": k.acteonActivities || "",
+      "Document": k.documentUrl ? (k.documentUrl.startsWith("data:") ? `Attached: ${k.documentName || "file"}` : k.documentUrl) : "",
+      "Email": k.email || "",
+      "Phone": k.phone || "",
+      "LinkedIn": k.linkedin || "",
+      "Instagram": k.instagram || "",
+      "Facebook": k.facebook || "",
+      "Website": k.website || "",
+      "Added By": k.addedBy || "",
+    }));
+    const sheet = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, "KOLs");
+    const dateStr = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `Acteon_KOL_Export_${dateStr}.xlsx`);
+  } catch (e) {
+    console.error("Export failed:", e);
+    alert("Couldn't export to Excel: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalLabel;
+  }
+};
+
+/* ---------------------------- View toggle ---------------------------- */
+let currentView = "cards";
+window.setView = (view) => {
+  currentView = view;
+  document.getElementById("viewBtn-cards").classList.toggle("on", view === "cards");
+  document.getElementById("viewBtn-table").classList.toggle("on", view === "table");
+  document.getElementById("grid").style.display = view === "cards" ? "grid" : "none";
+  document.getElementById("tableWrap").style.display = view === "table" ? "block" : "none";
+};
+
+/* ---------------------------- Map view ---------------------------- */
+let mapViewOpen = false;
+let leafletMap = null;
+let leafletClusterGroup = null;
+// The background geocoding backfill writes to Firestore roughly once a second while the map
+// is open, which re-triggers a render here so newly-geocoded pins can appear. Without this
+// flag, every one of those background refreshes would also re-fit the map bounds and yank
+// the view back out from under anyone who'd just zoomed or panned. Only the very first render
+// after opening the map should auto-fit; later ones just update markers in place.
+let mapHasFitBounds = false;
+
+window.openMapView = () => {
+  mapViewOpen = true;
+  mapHasFitBounds = false;
+  document.getElementById("viewBtn-cards").classList.remove("on");
+  document.getElementById("viewBtn-table").classList.remove("on");
+  document.getElementById("viewBtn-map").classList.add("on");
+  document.getElementById("directoryView").style.display = "none";
+  document.getElementById("mapSection").style.display = "block";
+  if (!leafletMap) {
+    leafletMap = L.map("kolMap").setView([20, 10], 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    }).addTo(leafletMap);
+    leafletClusterGroup = L.markerClusterGroup();
+    leafletMap.addLayer(leafletClusterGroup);
+  }
+  renderKolMap();
+  // The map container was display:none until now, so Leaflet needs a nudge once it's
+  // actually visible and sized to draw its tiles correctly.
+  setTimeout(() => leafletMap.invalidateSize(), 50);
+};
+
+window.closeMapView = () => {
+  mapViewOpen = false;
+  document.getElementById("mapSection").style.display = "none";
+  document.getElementById("directoryView").style.display = "block";
+  document.getElementById("viewBtn-map").classList.remove("on");
+  setView(currentView); // restore whichever of Cards/Table was active before Map was opened
+};
+
+window.viewKolFromMap = (id) => {
+  closeMapView();
+  openViewModal(id);
+};
+
+function mapPinIcon(level) {
+  const cls = level === "Main" ? "gold" : level === "Candidate" ? "grey" : "cyan";
+  return L.divIcon({
+    className: "", html: `<div class="map-pin ${cls}"></div>`,
+    iconSize: [26, 26], iconAnchor: [13, 26], popupAnchor: [0, -24],
+  });
+}
+
+function renderKolMap() {
+  if (!leafletMap || !mapViewOpen) return;
+  const list = getFilteredList();
+  const placed = list.filter(k => typeof k.geoLat === "number" && typeof k.geoLng === "number");
+  const pending = list.length - placed.length;
+
+  leafletClusterGroup.clearLayers();
+  placed.forEach(k => {
+    const marker = L.marker([k.geoLat, k.geoLng], { icon: mapPinIcon(k.level) });
+    const locLine = [k.location, k.country].filter(Boolean).join(", ") || "Location unknown";
+    marker.bindPopup(`
+      <div class="map-popup">
+        <h4>${escapeHtml(k.name)}</h4>
+        <div class="loc">${escapeHtml(k.credentials || k.type || "")}${k.level ? " · " + escapeHtml(k.level) : ""}<br/>📍 ${escapeHtml(locLine)}</div>
+        <button onclick="viewKolFromMap('${k.id}')">View KOL</button>
+      </div>
+    `);
+    leafletClusterGroup.addLayer(marker);
+  });
+
+  document.getElementById("mapSubtext").textContent =
+    `Showing ${placed.length} of ${list.length} KOL${list.length===1?"":"s"} matching your current filters`;
+
+  const noteEl = document.getElementById("mapGeoNote");
+  if (pending > 0) {
+    noteEl.style.display = "flex";
+    noteEl.innerHTML = `⏳ ${pending} KOL${pending===1?"":"s"} in this filter ${pending===1?"hasn't":"haven't"} been placed on the map yet — new and existing records are geocoded automatically in the background (about one per second). Check back shortly.`;
+  } else {
+    noteEl.style.display = "none";
+  }
+
+  if (placed.length && !mapHasFitBounds) {
+    leafletMap.fitBounds(leafletClusterGroup.getBounds(), { padding: [30, 30], maxZoom: 6 });
+    mapHasFitBounds = true;
+  }
+}
+
+/* ---------------------------- Table view ---------------------------- */
+let openProductsRow = null;
+let openSpecialtiesRow = null;
+
+async function updateKolField(id, field, value) {
+  try {
+    const payload = { [field]: value };
+    if (field === "type" && value === "RDH") payload.specialties = [];
+    if (field === "location" || field === "country") {
+      const k = allKols.find(x => x.id === id);
+      const location = field === "location" ? value : (k ? k.location : "");
+      const country = field === "country" ? value : (k ? k.country : "");
+      payload.region = deriveRegion(location, country);
+    }
+    await updateDoc(doc(db, "kols", id), payload);
+  } catch (e) {
+    alert("Couldn't save change: " + e.message);
+  }
+}
+window.updateKolField = updateKolField;
+
+window.commitPrimaryRepCell = (id, inputEl) => {
+  const val = inputEl.value.trim();
+  const k = allKols.find(x => x.id === id);
+  if (!val) { inputEl.value = ""; updateKolField(id, "primaryRep", ""); return; }
+  const match = matchEmployeeByName(val);
+  if (!match) { inputEl.value = k ? (k.primaryRep || "") : ""; return; }
+  inputEl.value = match.name;
+  updateKolField(id, "primaryRep", match.name);
+};
+
+window.toggleTableProductsPopover = (id) => {
+  openProductsRow = openProductsRow === id ? null : id;
+  renderTable(currentTableList || []);
+};
+
+window.toggleTableProduct = async (id, product) => {
+  const k = allKols.find(x => x.id === id);
+  if (!k) return;
+  const prods = new Set(k.products || []);
+  if (prods.has(product)) prods.delete(product); else prods.add(product);
+  await updateKolField(id, "products", [...prods]);
+};
+
+window.toggleTableSpecialtiesPopover = (id) => {
+  openSpecialtiesRow = openSpecialtiesRow === id ? null : id;
+  renderTable(currentTableList || []);
+};
+
+window.toggleTableSpecialty = async (id, specialty) => {
+  const k = allKols.find(x => x.id === id);
+  if (!k) return;
+  const specs = new Set(getSpecialties(k));
+  if (specs.has(specialty)) specs.delete(specialty); else specs.add(specialty);
+  await updateKolField(id, "specialties", [...specs]);
+};
+
+document.addEventListener("click", (e) => {
+  if (openProductsRow && !e.target.closest(".products-cell")) {
+    openProductsRow = null;
+    renderTable(currentTableList || []);
+  }
+  if (openSpecialtiesRow && !e.target.closest(".specialties-cell")) {
+    openSpecialtiesRow = null;
+    renderTable(currentTableList || []);
+  }
+});
+
+let currentTableList = [];
+let tableSort = { key: "name", dir: "asc" };
+
+window.setTableSort = (key) => {
+  if (tableSort.key === key) {
+    tableSort.dir = tableSort.dir === "asc" ? "desc" : "asc";
+  } else {
+    tableSort.key = key;
+    tableSort.dir = "asc";
+  }
+  renderTable(currentTableList);
+};
+
+function sortedTableList(list) {
+  const { key, dir } = tableSort;
+  if (!key) return list;
+  const mult = dir === "asc" ? 1 : -1;
+  const getVal = (k) => {
+    if (key === "products") return (k.products||[]).join(", ");
+    if (key === "specialty") return getSpecialties(k).join(", ");
+    return k[key] || "";
+  };
+  return [...list].sort((a, b) => {
+    const av = getVal(a), bv = getVal(b);
+    return String(av).localeCompare(String(bv), undefined, { sensitivity:"base" }) * mult;
+  });
+}
+
+function sortArrow(key) {
+  if (tableSort.key !== key) return "";
+  return tableSort.dir === "asc" ? " ▲" : " ▼";
+}
+
+function thSort(label, key) {
+  return `<th class="sortable" onclick="setTableSort('${key}')">${escapeHtml(label)}${sortArrow(key)}</th>`;
+}
+
+function renderTable(rawList) {
+  currentTableList = rawList;
+  const el = document.getElementById("kolTable");
+  if (!el) return;
+  if (!rawList.length) {
+    el.innerHTML = `<tr><td style="padding:24px;color:#9AA8B0;">No KOLs match the current filters.</td></tr>`;
+    return;
+  }
+  const list = sortedTableList(rawList);
+  const levelOpts = (current) => `<option value="">—</option>` + LEVELS.map(s => `<option value="${escapeHtml(s)}" ${current===s?'selected':''}>${escapeHtml(s)}</option>`).join("");
+  const statusOpts = (current) => `<option value="">—</option>` + STATUS_OPTIONS.map(s => `<option value="${escapeHtml(s)}" ${current===s?'selected':''}>${escapeHtml(s)}</option>`).join("");
+  const typeOpts = (current) => TYPES.map(s => `<option value="${escapeHtml(s)}" ${current===s?'selected':''}>${escapeHtml(s)}</option>`).join("");
+  const countryOpts = (current) => `<option value="">—</option>` + COUNTRIES.map(c => `<option value="${escapeHtml(c)}" ${current===c?'selected':''}>${escapeHtml(c)}</option>`).join("");
+
+  const flagBtn = (id, field, on, icon, title) =>
+    `<button class="flag-btn ${on?'on':''}" title="${escapeHtml(title)}" onclick="updateKolField('${id}','${field}',${!on})">${icon}</button>`;
+
+  el.innerHTML = `
+    <thead><tr>
+      <th></th>${thSort("Name","name")}${thSort("Type","type")}${thSort("Specialty","specialty")}${thSort("Level","level")}${thSort("Products","products")}
+      ${thSort("Acteon Contact","primaryRep")}${thSort("Country","country")}${thSort("Region","region")}${thSort("Status","status")}<th>Flags</th><th></th>
+    </tr></thead>
+    <tbody>
+      ${list.map(k => `
+        <tr>
+          <td><div class="table-avatar">${k.photoUrl ? `<img src="${escapeUrl(k.photoUrl)}" alt="" onerror="this.parentElement.textContent='${initials(k.name)}'" />` : initials(k.name)}</div></td>
+          <td><div class="table-name-cell"><input type="text" value="${escapeHtml(k.name)}" onblur="if(this.value.trim()) updateKolField('${k.id}','name',this.value.trim()); else this.value='${escapeHtml(k.name)}';" /></div></td>
+          <td><select onchange="updateKolField('${k.id}','type',this.value);">${typeOpts(k.type)}</select></td>
+          <td class="specialties-cell products-cell">
+            <button class="products-cell-btn" ${k.type!=='Dentist'?'disabled':''} onclick="toggleTableSpecialtiesPopover('${k.id}')">${getSpecialties(k).length ? escapeHtml(getSpecialties(k).join(", ")) : "— none —"}</button>
+            ${openSpecialtiesRow===k.id ? `
+              <div class="dropdown-panel open" style="left:0; top:calc(100% + 4px);">
+                ${SPECIALTIES.map(s => `<label class="dd-option" onclick="event.stopPropagation()">
+                  <input type="checkbox" ${getSpecialties(k).includes(s)?'checked':''} onchange="toggleTableSpecialty('${k.id}','${jsAttr(s)}')" />
+                  ${escapeHtml(s)}
+                </label>`).join("")}
+              </div>` : ""}
+          </td>
+          <td><select onchange="updateKolField('${k.id}','level',this.value);">${levelOpts(k.level)}</select></td>
+          <td class="products-cell">
+            <button class="products-cell-btn" onclick="toggleTableProductsPopover('${k.id}')">${(k.products&&k.products.length) ? escapeHtml(k.products.join(", ")) : "— none —"}</button>
+            ${openProductsRow===k.id ? `
+              <div class="dropdown-panel open" style="left:0; top:calc(100% + 4px);">
+                ${PRODUCTS.map(p => `<label class="dd-option" onclick="event.stopPropagation()">
+                  <input type="checkbox" ${(k.products||[]).includes(p)?'checked':''} onchange="toggleTableProduct('${k.id}','${jsAttr(p)}')" />
+                  ${escapeHtml(p)}
+                </label>`).join("")}
+              </div>` : ""}
+          </td>
+          <td><input type="text" list="acteonEmployeesList" value="${escapeHtml(k.primaryRep||"")}" placeholder="—" onblur="commitPrimaryRepCell('${k.id}', this)" /></td>
+          <td><select onchange="updateKolField('${k.id}','country',this.value)">${countryOpts(k.country||"")}</select></td>
+          <td style="white-space:nowrap;color:var(--ink-soft);font-size:11.5px;">${escapeHtml(k.region || deriveRegion(k.location, k.country))}</td>
+          <td><select onchange="updateKolField('${k.id}','status',this.value);">${statusOpts(k.status)}</select></td>
+          <td>
+            <div class="table-flags">
+              ${flagBtn(k.id, "availableVirtually", k.availableVirtually, "💻", "Available virtually")}
+              ${flagBtn(k.id, "travelsNationally", k.travelsNationally, "✈️", "Travels nationally")}
+              ${flagBtn(k.id, "englishSpeaking", k.englishSpeaking, "🗣️", "English speaking")}
+              ${flagBtn(k.id, "royaltiesContract", k.royaltiesContract, "📜", "Royalties contract")}
+            </div>
+          </td>
+          <td>
+            <div class="table-row-actions">
+              <button class="icon-btn" title="Open" onclick="openViewModal('${k.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+              <button class="icon-btn" title="Full edit" onclick="openEditModal('${k.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              ${canDeleteKol(k) ? `<button class="icon-btn danger" title="Delete" onclick="deleteKol('${k.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+              </button>` : ""}
+            </div>
+          </td>
+        </tr>
+      `).join("")}
+    </tbody>
+  `;
+}
+
+function isAdmin() {
+  return !!currentUser && ADMIN_EMAILS.has((currentUser.email || "").toLowerCase());
+}
+
+// Admins can delete anything; everyone else only the KOLs where they're the Acteon Contact.
+function canDeleteKol(k) {
+  if (isAdmin()) return true;
+  const match = currentUser && matchEmployeeByEmail(currentUser.email);
+  return !!match && k.primaryRep === match.name;
+}
+
+window.approveMainKol = async (id) => {
+  try {
+    await updateDoc(doc(db, "kols", id), { mainKolApprovalStatus: "approved" });
+    if (viewingId === id) {
+      const k = { ...allKols.find(x => x.id === id), mainKolApprovalStatus: "approved" };
+      document.getElementById("viewModalBody").innerHTML = viewBodyHtml(k);
+    }
+  } catch (e) {
+    alert("Couldn't approve: " + e.message);
+  }
+};
+
+function statusBarClass(status) {
+  if (status === "Active") return "active";
+  if (status === "Prospective") return "prospective";
+  return "";
+}
+
+function initials(name) {
+  return (name||"?").replace(/^Dr\.?\s*/i,"").split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+}
+
+function cardHtml(k) {
+  const caps = k.capabilities || {};
+  const capTags = CAPABILITIES.filter(c => caps[c.key]).map(c => `<span class="tag cap">${c.label}</span>`).join("");
+  const prodTags = (k.products||[]).map(p => `<span class="tag prod">${escapeHtml(p)}</span>`).join("");
+  const specTag = getSpecialties(k).map(s => `<span class="tag spec">${escapeHtml(s)}</span>`).join("");
+  const links = [];
+  if (k.website) links.push(`<a href="${escapeUrl(k.website)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Website</a>`);
+  if (k.linkedin) links.push(`<a href="${escapeUrl(k.linkedin)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">LinkedIn</a>`);
+  if (k.instagram) links.push(`<a href="${escapeUrl(k.instagram)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Instagram</a>`);
+  if (k.facebook) links.push(`<a href="${escapeUrl(k.facebook)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Facebook</a>`);
+  if (k.email) links.push(`<span onclick="event.stopPropagation()">${escapeHtml(k.email)}</span>`);
+  if (k.phone) links.push(`<span onclick="event.stopPropagation()">${escapeHtml(k.phone)}</span>`);
+  if (k.documentUrl) links.push(`<a class="doc-link" href="${escapeUrl(k.documentUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 ${escapeHtml(k.documentName || "Document")}</a>`);
+
+  return `
+  <div class="kol-card ${k.level==='Main'?'main-tier':(k.level==='Candidate'?'candidate-tier':'')}" onclick="openViewModal('${k.id}')">
+    ${k.status ? `<div class="kol-status-bar ${statusBarClass(k.status)}">${escapeHtml(k.status)}</div>` : ""}
+    <div class="kol-body">
+      <div class="kol-head">
+        <div class="avatar">${k.photoUrl ? `<img src="${escapeUrl(k.photoUrl)}" data-fallback="${escapeHtml(initials(k.name))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" title="${escapeHtml(k.photoUrl)}" onerror="console.warn('KOL photo failed to load:', this.src); this.parentElement.innerHTML='<span title=&quot;Photo URL saved but failed to load&quot; style=&quot;cursor:help;&quot;>'+this.dataset.fallback+'</span>'" />` : initials(k.name)}</div>
+        <div class="kol-head-text">
+          <div class="kol-name-row">
+            <span class="kol-name">${escapeHtml(k.name)}</span>
+            ${k.level ? `<span class="tier-badge ${k.level==='Main'?'main':(k.level==='Candidate'?'candidate':'')}">${escapeHtml(k.level)}</span>` : ""}
+            ${k.level==='Main' && k.mainKolApprovalStatus!=='approved' ? `<span class="tag pending">Pending approval</span>` : ""}
+          </div>
+          <div class="kol-cred">${escapeHtml(k.credentials||"")}${k.type==='RDH' && !k.credentials ? 'RDH':''}</div>
+          ${(k.location || k.country) ? `<div class="kol-loc">📍 ${[k.location, k.country].filter(Boolean).map(v=>escapeHtml(v)).join(", ")}${(!k.country && k.region) ? ` <span style="color:#9AA8B0;">· ${escapeHtml(k.region)}</span>` : ""}</div>` : ""}
+          ${k.availableVirtually ? `<div class="kol-loc" style="color:#0A6E8C;">💻 Available virtually</div>` : ""}
+          ${k.travelsNationally ? `<div class="kol-loc" style="color:#0A6E8C;">✈️ Travels nationally</div>` : ""}
+          ${k.englishSpeaking ? `<div class="kol-loc" style="color:#0A6E8C;">🗣️ English speaking</div>` : ""}
+          ${k.royaltiesContract ? `<div class="kol-loc" style="color:#0A6E8C;">📜 Royalties contract</div>` : ""}
+          ${k.primaryRep ? `<div class="kol-loc">👤 Contact: ${escapeHtml(k.primaryRep)}</div>` : ""}
+        </div>
+      </div>
+      ${(specTag||prodTags||capTags) ? `<div class="tag-row">${specTag}${prodTags}${capTags}</div>` : ""}
+      ${links.length ? `<div class="kol-links">${links.join("")}</div>` : ""}
+    </div>
+    <div class="kol-footer">
+      <span class="added-by">${k.addedBy ? 'Added by '+escapeHtml(k.addedBy) : ''}</span>
+      <div>
+        ${canDeleteKol(k) ? `<button class="icon-btn danger" title="Delete" onclick="event.stopPropagation(); deleteKol('${k.id}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+        </button>` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(s) { return (s==null?"":String(s)).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function escapeUrl(s) {
+  let v = String(s||"").trim();
+  // Don't mangle values that already have a scheme (http(s):, data:, mailto:, etc.) — only bare domains get https:// added.
+  if (v && !/^[a-z][a-z0-9+.\-]*:/i.test(v)) v = "https://" + v;
+  return escapeHtml(v);
+}
+// Safe fragment for embedding a value inside a single-quoted JS string within an onclick="..." attribute
+function jsAttr(s) { return String(s==null?"":s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+/* ---------------------------- Modal / form ---------------------------- */
+let formState = { type:"Dentist", level:"", status:"", capabilities:{}, products:[], specialties:[], availableVirtually:false, travelsNationally:false, royaltiesContract:false, englishSpeaking:false, photoUrl:"", documentUrl:"", documentName:"" };
+
+const FLAG_FIELD_IDS = {
+  availableVirtually: { input:"f_availableVirtually", wrap:"f_virtualWrap" },
+  travelsNationally:  { input:"f_travelsNationally",  wrap:"f_travelsWrap" },
+  royaltiesContract:  { input:"f_royaltiesContract",  wrap:"f_royaltiesWrap" },
+  englishSpeaking:    { input:"f_englishSpeaking",    wrap:"f_englishWrap" },
+};
+
+window.toggleAvailFlag = (e, key) => {
+  formState[key] = !formState[key];
+  const ids = FLAG_FIELD_IDS[key];
+  document.getElementById(ids.input).checked = formState[key];
+  document.getElementById(ids.wrap).classList.toggle("on", formState[key]);
+};
+
+function updatePhotoPreview() {
+  const el = document.getElementById("photoPreview");
+  if (formState.photoUrl) {
+    el.innerHTML = `<img src="${escapeUrl(formState.photoUrl)}" onerror="this.parentElement.innerHTML='<span>'+initials(document.getElementById('f_name').value)+'</span>'" />`;
+  } else {
+    const nameVal = document.getElementById("f_name") ? document.getElementById("f_name").value : "";
+    el.innerHTML = `<span>${initials(nameVal)}</span>`;
+  }
+}
+window.updatePhotoPreview = updatePhotoPreview;
+
+window.handlePhotoUrlInput = () => {
+  formState.photoUrl = document.getElementById("f_photoUrl").value.trim();
+  document.getElementById("photoStatus").textContent = "";
+  updatePhotoPreview();
+};
+
+// Resizes an image client-side and returns a compact JPEG data URL.
+// No Firebase Storage needed — the image is embedded directly in the KOL record.
+function resizeImageToDataUrl(file, maxDim = 300, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That doesn't look like a valid image."));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height >= width && height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+window.handlePhotoUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById("photoStatus");
+  statusEl.style.color = "";
+  statusEl.textContent = "Processing image…";
+  try {
+    if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+    const dataUrl = await resizeImageToDataUrl(file);
+    const approxKB = Math.round(dataUrl.length * 0.75 / 1024);
+    if (approxKB > 700) throw new Error("That image is still too large after resizing — try a smaller or simpler photo.");
+    formState.photoUrl = dataUrl;
+    document.getElementById("f_photoUrl").value = "";
+    document.getElementById("f_photoUrl").placeholder = "Image attached from upload — paste a URL to replace it";
+    updatePhotoPreview();
+    statusEl.style.color = "";
+    statusEl.textContent = `Image attached (${approxKB} KB) ✓`;
+  } catch (e) {
+    console.error("Photo processing failed:", e);
+    statusEl.style.color = "#C24A3F";
+    statusEl.textContent = e.message || "Couldn't process that image — try a different file or paste a URL instead.";
+  }
+};
+
+/* ---------------------------- Document attachment ---------------------------- */
+// Small files (bio sheets, one-pagers) are embedded directly in the KOL record as a data
+// URL, same trick as the photo — no Firebase Storage needed. Kept to a tighter size cap
+// than photos since a KOL can have both attached and Firestore documents max out at ~1MB
+// total; anything bigger should be linked instead (SharePoint, Drive, etc.).
+const MAX_DOC_KB = 350;
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderDocPreview() {
+  const el = document.getElementById("docPreview");
+  if (!formState.documentUrl) { el.innerHTML = ""; return; }
+  const label = formState.documentName || "Linked document";
+  el.innerHTML = `<div class="doc-chip"><span>📎 ${escapeHtml(label)}</span><button type="button" title="Remove document" onclick="removeDocument()">✕</button></div>`;
+}
+
+window.removeDocument = () => {
+  formState.documentUrl = "";
+  formState.documentName = "";
+  document.getElementById("f_documentUrl").value = "";
+  document.getElementById("f_documentUrl").placeholder = "https://…";
+  document.getElementById("f_docFile").value = "";
+  document.getElementById("docStatus").textContent = "";
+  renderDocPreview();
+};
+
+window.handleDocUrlInput = () => {
+  formState.documentUrl = document.getElementById("f_documentUrl").value.trim();
+  formState.documentName = "";
+  document.getElementById("docStatus").textContent = "";
+  renderDocPreview();
+};
+
+window.handleDocUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById("docStatus");
+  statusEl.style.color = "";
+  statusEl.textContent = "Processing document…";
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    const approxKB = Math.round(dataUrl.length * 0.75 / 1024);
+    if (approxKB > MAX_DOC_KB) {
+      throw new Error(`That file is ${approxKB}KB — attachments are capped at ${MAX_DOC_KB}KB. Upload it to SharePoint/Drive instead and paste the link below.`);
+    }
+    formState.documentUrl = dataUrl;
+    formState.documentName = file.name;
+    document.getElementById("f_documentUrl").value = "";
+    document.getElementById("f_documentUrl").placeholder = "Document attached from upload — paste a URL to replace it";
+    renderDocPreview();
+    statusEl.style.color = "";
+    statusEl.textContent = `Attached (${approxKB} KB) ✓`;
+  } catch (e) {
+    console.error("Document processing failed:", e);
+    statusEl.style.color = "#C24A3F";
+    statusEl.textContent = e.message || "Couldn't attach that file — try a different one or paste a URL instead.";
+  } finally {
+    event.target.value = "";
+  }
+};
+
+function segGroupHtml(id, options, current) {
+  return options.map(o => `<div class="seg-btn ${current===o?'on':''}" data-val="${escapeHtml(o)}" onclick="setSeg('${id}', this)">${escapeHtml(o)}</div>`).join("");
+}
+window.setSeg = (groupId, el) => {
+  const parent = el.parentElement;
+  [...parent.children].forEach(c => c.classList.remove("on"));
+  el.classList.add("on");
+  const val = el.getAttribute("data-val"); // browser auto-decodes HTML entities in attribute values
+  if (groupId === "f_type") { formState.type = val; toggleSpecialtyVisibility(); }
+  if (groupId === "f_level") { formState.level = val; applyLevelDefaults(val); }
+  if (groupId === "f_status") { formState.status = val; }
+};
+
+function toggleSpecialtyVisibility() {
+  document.getElementById("specialtyField").style.display = formState.type === "Dentist" ? "block" : "none";
+}
+
+function applyLevelDefaults(level) {
+  const defaults = LEVEL_DEFAULTS[level] || {};
+  formState.capabilities = { ...defaults };
+  renderCapabilityPills();
+}
+
+function renderCapabilityPills() {
+  const el = document.getElementById("f_capabilities");
+  el.innerHTML = CAPABILITIES.map(c => {
+    const on = !!formState.capabilities[c.key];
+    return `<label class="check-pill ${on?'on':''}" onclick="toggleCap(event,'${c.key}')">
+      <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation()" onchange="toggleCap(event,'${c.key}')" />
+      ${c.label}
+    </label>`;
+  }).join("");
+}
+window.toggleCap = (e, key) => {
+  formState.capabilities[key] = !formState.capabilities[key];
+  renderCapabilityPills();
+};
+
+function renderProductPills() {
+  const el = document.getElementById("f_products");
+  el.innerHTML = PRODUCTS.map(p => {
+    const on = formState.products.includes(p);
+    return `<label class="check-pill ${on?'on':''}" onclick="toggleProduct(event,'${jsAttr(p)}')">
+      <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation()" onchange="toggleProduct(event,'${jsAttr(p)}')" />
+      ${escapeHtml(p)}
+    </label>`;
+  }).join("");
+}
+window.toggleProduct = (e, p) => {
+  const idx = formState.products.indexOf(p);
+  if (idx>-1) formState.products.splice(idx,1); else formState.products.push(p);
+  renderProductPills();
+};
+
+function renderSpecialtyPills() {
+  const el = document.getElementById("f_specialty");
+  el.innerHTML = SPECIALTIES.map(s => {
+    const on = formState.specialties.includes(s);
+    return `<label class="check-pill ${on?'on':''}" onclick="toggleSpecialty(event,'${jsAttr(s)}')">
+      <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation()" onchange="toggleSpecialty(event,'${jsAttr(s)}')" />
+      ${escapeHtml(s)}
+    </label>`;
+  }).join("");
+}
+window.toggleSpecialty = (e, s) => {
+  const idx = formState.specialties.indexOf(s);
+  if (idx>-1) formState.specialties.splice(idx,1); else formState.specialties.push(s);
+  renderSpecialtyPills();
+};
+
+function populateCountrySelect() {
+  document.getElementById("f_country").innerHTML = `<option value="">— Select —</option>` + COUNTRIES.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+}
+
+window.openAddModal = () => {
+  editingId = null;
+  formState = { type:"Dentist", level:"", status:"", capabilities:{}, products:[], specialties:[], availableVirtually:false, travelsNationally:false, royaltiesContract:false, englishSpeaking:false, photoUrl:"", documentUrl:"", documentName:"" };
+  document.getElementById("modalTitle").textContent = "Add KOL";
+  ["f_name","f_credentials","f_location","f_bio","f_acteonActivities","f_email","f_phone","f_linkedin","f_instagram","f_facebook","f_website","f_photoUrl","f_documentUrl"].forEach(id => document.getElementById(id).value = "");
+  // Default the Acteon Contact to whoever's adding this KOL — they're almost always the
+  // owner; the field stays fully editable if someone else should be set instead.
+  const self = currentUser && matchEmployeeByEmail(currentUser.email);
+  document.getElementById("f_primaryRep").value = self ? self.name : (currentUser ? (currentUser.displayName || "") : "");
+  renderSpecialtyPills();
+  populateCountrySelect();
+  document.getElementById("f_country").value = "";
+  document.getElementById("f_type").innerHTML = segGroupHtml("f_type", TYPES, formState.type);
+  document.getElementById("f_level").innerHTML = segGroupHtml("f_level", LEVELS, formState.level);
+  document.getElementById("f_status").innerHTML = segGroupHtml("f_status", STATUS_OPTIONS, formState.status);
+  renderCapabilityPills();
+  renderProductPills();
+  toggleSpecialtyVisibility();
+  Object.entries(FLAG_FIELD_IDS).forEach(([, ids]) => {
+    document.getElementById(ids.input).checked = false;
+    document.getElementById(ids.wrap).classList.remove("on");
+  });
+  document.getElementById("f_photoUrl").placeholder = "https://…";
+  document.getElementById("photoStatus").textContent = "";
+  document.getElementById("f_documentUrl").placeholder = "https://…";
+  document.getElementById("docStatus").textContent = "";
+  document.getElementById("primaryRepError").style.display = "none";
+  document.getElementById("primaryRepPanel").classList.remove("open");
+  updatePhotoPreview();
+  renderDocPreview();
+  showKolModal();
+};
+
+function viewRow(label, value) {
+  if (!value) return "";
+  return `<div class="view-row"><div class="k">${escapeHtml(label)}</div><div class="v">${value}</div></div>`;
+}
+
+function viewBodyHtml(k) {
+  const caps = k.capabilities || {};
+  const capTags = CAPABILITIES.filter(c => caps[c.key]).map(c => `<span class="tag cap">${c.label}</span>`).join("");
+  const prodTags = (k.products||[]).map(p => `<span class="tag prod">${escapeHtml(p)}</span>`).join("");
+  const specTag = getSpecialties(k).map(s => `<span class="tag spec">${escapeHtml(s)}</span>`).join("");
+  const avail = [];
+  if (k.availableVirtually) avail.push("💻 Available virtually");
+  if (k.travelsNationally) avail.push("✈️ Travels nationally");
+  if (k.englishSpeaking) avail.push("🗣️ English speaking");
+  if (k.royaltiesContract) avail.push("📜 Royalties contract");
+
+  const isPendingMain = k.level === "Main" && k.mainKolApprovalStatus !== "approved";
+  const approvalRow = k.level === "Main"
+    ? `<div class="view-row"><div class="k">Main KOL approval</div><div class="v">
+        ${isPendingMain
+          ? `<span style="color:#8A5A1E;font-weight:600;">Pending</span>` + (isAdmin() ? ` <button class="btn btn-cyan" style="padding:5px 12px;font-size:12px;margin-left:8px;" onclick="approveMainKol('${k.id}')">Approve</button>` : "")
+          : `<span style="color:#2E8B57;font-weight:600;">Approved</span>`}
+      </div></div>`
+    : "";
+
+  return `
+    <div class="view-head">
+      <div class="avatar">${k.photoUrl ? `<img src="${escapeUrl(k.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${jsAttr(initials(k.name))}'" />` : initials(k.name)}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="view-name">${escapeHtml(k.name)}</div>
+        ${k.credentials ? `<div class="kol-cred">${escapeHtml(k.credentials)}</div>` : ""}
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+          ${k.level ? `<span class="tier-badge ${k.level==='Main'?'main':(k.level==='Candidate'?'candidate':'')}">${escapeHtml(k.level)}</span>` : ""}
+          ${k.status ? `<span class="view-status ${statusBarClass(k.status)}">${escapeHtml(k.status)}</span>` : ""}
+          ${isPendingMain ? `<span class="tag pending">Pending approval</span>` : ""}
+        </div>
+      </div>
+    </div>
+    ${(specTag||prodTags||capTags) ? `<div class="tag-row" style="margin-top:14px;">${specTag}${prodTags}${capTags}</div>` : ""}
+    <div style="margin-top:14px;">
+      ${viewRow("Type", escapeHtml(k.type||""))}
+      ${viewRow("Location", escapeHtml(k.location||"") + (!k.country && k.region ? ` <span style="color:#9AA8B0;">· ${escapeHtml(k.region)}</span>` : ""))}
+      ${viewRow("Country", escapeHtml(k.country||""))}
+      ${viewRow("Acteon Contact", escapeHtml(k.primaryRep||""))}
+      ${viewRow("Availability", avail.join(" &nbsp;·&nbsp; "))}
+      ${approvalRow}
+      ${viewRow("Email", k.email ? `<a href="mailto:${encodeURIComponent(k.email).replace(/%40/g,'@')}">${escapeHtml(k.email)}</a>` : "")}
+      ${viewRow("Phone", k.phone ? `<a href="tel:${escapeHtml(k.phone.replace(/[^\d+]/g,''))}">${escapeHtml(k.phone)}</a>` : "")}
+      ${viewRow("Website", k.website ? `<a href="${escapeUrl(k.website)}" target="_blank" rel="noopener">${escapeHtml(k.website)}</a>` : "")}
+      ${viewRow("LinkedIn", k.linkedin ? `<a href="${escapeUrl(k.linkedin)}" target="_blank" rel="noopener">${escapeHtml(k.linkedin)}</a>` : "")}
+      ${viewRow("Instagram", k.instagram ? `<a href="${escapeUrl(k.instagram)}" target="_blank" rel="noopener">${escapeHtml(k.instagram)}</a>` : "")}
+      ${viewRow("Facebook", k.facebook ? `<a href="${escapeUrl(k.facebook)}" target="_blank" rel="noopener">${escapeHtml(k.facebook)}</a>` : "")}
+    </div>
+    ${k.bio ? `<div class="section-label">Bio</div><div class="view-bio">${escapeHtml(k.bio)}</div>` : ""}
+    ${k.documentUrl ? `<div class="doc-chip" style="margin-top:8px;"><a class="doc-link" href="${escapeUrl(k.documentUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">📎 ${escapeHtml(k.documentName || "Attached document")}</a></div>` : ""}
+    ${k.acteonActivities ? `<div class="section-label">Acteon Activities</div><div class="view-bio">${escapeHtml(k.acteonActivities)}</div>` : ""}
+    ${k.addedBy ? `<div class="view-added-by">Added by ${escapeHtml(k.addedBy)}</div>` : ""}
+  `;
+}
+
+window.openViewModal = (id) => {
+  const k = allKols.find(x => x.id === id);
+  if (!k) return;
+  viewingId = id;
+  document.getElementById("viewModalTitle").textContent = k.name || "KOL Details";
+  document.getElementById("viewModalBody").innerHTML = viewBodyHtml(k);
+  const overlay = document.getElementById("viewModalOverlay");
+  overlay.style.display = "flex";
+  overlay.scrollTop = 0;
+};
+
+window.closeViewModal = () => {
+  document.getElementById("viewModalOverlay").style.display = "none";
+  viewingId = null;
+};
+
+window.viewSwitchToEdit = () => {
+  const id = viewingId;
+  closeViewModal();
+  if (id) openEditModal(id);
+};
+
+// Only closes if BOTH mousedown and click land on the overlay itself. A plain "click" check
+// isn't enough: if something inside the modal hides itself mid-interaction (e.g. a dropdown
+// row closing its panel on mousedown), the browser can retarget the resulting click to
+// whatever's now underneath — which may be the overlay backdrop — closing the modal
+// even though the user clicked a field, not the backdrop.
+let viewOverlayMouseDownOnBackdrop = false;
+document.getElementById("viewModalOverlay").addEventListener("mousedown", (e) => {
+  viewOverlayMouseDownOnBackdrop = e.target.id === "viewModalOverlay";
+});
+document.getElementById("viewModalOverlay").addEventListener("click", (e) => {
+  if (viewOverlayMouseDownOnBackdrop && e.target.id === "viewModalOverlay") closeViewModal();
+  viewOverlayMouseDownOnBackdrop = false;
+});
+
+window.openEditModal = (id) => {
+  const k = allKols.find(x => x.id === id);
+  if (!k) return;
+  editingId = id;
+  formState = {
+    type: k.type || "Dentist",
+    level: k.level || "",
+    status: k.status || "",
+    capabilities: { ...(k.capabilities||{}) },
+    products: [...(k.products||[])],
+    specialties: getSpecialties(k),
+    availableVirtually: !!k.availableVirtually,
+    travelsNationally: !!k.travelsNationally,
+    royaltiesContract: !!k.royaltiesContract,
+    englishSpeaking: !!k.englishSpeaking,
+    photoUrl: k.photoUrl || "",
+    documentUrl: k.documentUrl || "",
+    documentName: k.documentName || "",
+  };
+  document.getElementById("modalTitle").textContent = "Edit KOL";
+  document.getElementById("f_name").value = k.name || "";
+  document.getElementById("f_credentials").value = k.credentials || "";
+  document.getElementById("f_location").value = k.location || "";
+  populateCountrySelect();
+  document.getElementById("f_country").value = k.country || "";
+  document.getElementById("f_bio").value = k.bio || "";
+  document.getElementById("f_acteonActivities").value = k.acteonActivities || "";
+  document.getElementById("f_email").value = k.email || "";
+  document.getElementById("f_phone").value = k.phone || "";
+  document.getElementById("f_linkedin").value = k.linkedin || "";
+  document.getElementById("f_instagram").value = k.instagram || "";
+  document.getElementById("f_facebook").value = k.facebook || "";
+  document.getElementById("f_website").value = k.website || "";
+  renderSpecialtyPills();
+  document.getElementById("f_primaryRep").value = k.primaryRep || "";
+  document.getElementById("f_type").innerHTML = segGroupHtml("f_type", TYPES, formState.type);
+  document.getElementById("f_level").innerHTML = segGroupHtml("f_level", LEVELS, formState.level);
+  document.getElementById("f_status").innerHTML = segGroupHtml("f_status", STATUS_OPTIONS, formState.status);
+  renderCapabilityPills();
+  renderProductPills();
+  toggleSpecialtyVisibility();
+  Object.entries(FLAG_FIELD_IDS).forEach(([key, ids]) => {
+    document.getElementById(ids.input).checked = formState[key];
+    document.getElementById(ids.wrap).classList.toggle("on", formState[key]);
+  });
+  const photoField = document.getElementById("f_photoUrl");
+  const isEmbeddedPhoto = (k.photoUrl || "").startsWith("data:");
+  photoField.value = isEmbeddedPhoto ? "" : (k.photoUrl || "");
+  photoField.placeholder = isEmbeddedPhoto ? "Image attached from upload — paste a URL to replace it" : "https://…";
+  document.getElementById("photoStatus").textContent = "";
+  const docField = document.getElementById("f_documentUrl");
+  const isEmbeddedDoc = (k.documentUrl || "").startsWith("data:");
+  docField.value = isEmbeddedDoc ? "" : (k.documentUrl || "");
+  docField.placeholder = isEmbeddedDoc ? "Document attached from upload — paste a URL to replace it" : "https://…";
+  document.getElementById("docStatus").textContent = "";
+  document.getElementById("primaryRepError").style.display = "none";
+  document.getElementById("primaryRepPanel").classList.remove("open");
+  updatePhotoPreview();
+  renderDocPreview();
+  showKolModal();
+};
+
+window.closeModal = () => { document.getElementById("kolModalOverlay").style.display = "none"; };
+
+function showKolModal() {
+  const overlay = document.getElementById("kolModalOverlay");
+  overlay.style.display = "flex";
+  overlay.scrollTop = 0;
+  setTimeout(() => {
+    overlay.scrollTop = 0;
+    const nameField = document.getElementById("f_name");
+    if (nameField) nameField.focus();
+  }, 0);
+}
+
+// Custom searchable dropdown for Acteon Contact — a plain <input list=datalist> only lets you
+// browse the full list while the field is empty, so once a name is set there's no easy way to
+// switch it without deleting the text first. Focusing the field always shows the whole list
+// (even with an existing value in place); typing narrows it down from there.
+window.renderPrimaryRepOptions = (filter) => {
+  const panel = document.getElementById("primaryRepPanel");
+  const input = document.getElementById("f_primaryRep");
+  const term = filter ? input.value.trim().toLowerCase() : "";
+  const matches = allEmployees
+    .map(e => e.name)
+    .filter(n => !term || n.toLowerCase().includes(term))
+    .sort((a, b) => a.localeCompare(b));
+  let html = matches.map(n => `<div class="dd-row" onmousedown="event.preventDefault(); selectPrimaryRep('${jsAttr(n)}')">${escapeHtml(n)}</div>`).join("");
+  const exact = matches.some(n => n.toLowerCase() === term);
+  if (term && !exact) {
+    html += `<div class="dd-row add-new" onmousedown="event.preventDefault(); addNewEmployeeFromField()">+ Add "${escapeHtml(input.value.trim())}" as new contact</div>`;
+  }
+  panel.innerHTML = html || `<div class="dd-empty">No employees yet</div>`;
+  panel.classList.add("open");
+};
+
+window.selectPrimaryRep = (name) => {
+  document.getElementById("f_primaryRep").value = name;
+  document.getElementById("primaryRepPanel").classList.remove("open");
+  validatePrimaryRepField();
+};
+
+// mousedown on a panel row fires before this blur handler, so the value is already set by
+// the time we close the panel and validate.
+window.handlePrimaryRepBlur = () => {
+  setTimeout(() => {
+    document.getElementById("primaryRepPanel").classList.remove("open");
+    validatePrimaryRepField();
+  }, 150);
+};
+
+window.validatePrimaryRepField = () => {
+  const input = document.getElementById("f_primaryRep");
+  const errEl = document.getElementById("primaryRepError");
+  const val = input.value.trim();
+  if (!val) { errEl.style.display = "none"; errEl.innerHTML = ""; return true; }
+  const match = matchEmployeeByName(val);
+  if (match) {
+    input.value = match.name;
+    errEl.style.display = "none";
+    errEl.innerHTML = "";
+    return true;
+  }
+  errEl.innerHTML = `No match for "${escapeHtml(val)}" in the Acteon employee list.
+    <button type="button" class="btn-text" style="margin-left:4px;" onclick="addNewEmployeeFromField()">+ Add as new contact</button>`;
+  errEl.style.display = "block";
+  return false;
+};
+
+// Lets a rep add someone new to the employees list right from the KOL form, instead of
+// being blocked because the person isn't in the picklist yet. Prompts for their email
+// since that's what "My KOLs" and future logins match against.
+window.addNewEmployeeFromField = async () => {
+  const input = document.getElementById("f_primaryRep");
+  const name = input.value.trim();
+  if (!name) return;
+  const email = prompt(`Email address for ${name} (used to match them when they sign in):`, "");
+  if (email === null) return;
+  const trimmedEmail = email.trim().toLowerCase();
+  if (!trimmedEmail.endsWith("@" + ALLOWED_SIGNUP_DOMAIN)) {
+    alert(`Please use an @${ALLOWED_SIGNUP_DOMAIN} email address.`);
+    return;
+  }
+  try {
+    await syncEmployee(name, trimmedEmail);
+    input.value = name;
+    document.getElementById("primaryRepError").style.display = "none";
+    document.getElementById("primaryRepError").innerHTML = "";
+    document.getElementById("primaryRepPanel").classList.remove("open");
+  } catch (e) {
+    alert("Couldn't add contact: " + e.message);
+  }
+};
+
+window.saveKol = async () => {
+  const name = document.getElementById("f_name").value.trim();
+  if (!name) { alert("Please enter a name."); return; }
+  const country = document.getElementById("f_country").value.trim();
+  if (!country) { alert("Please select a country."); document.getElementById("f_country").focus(); return; }
+  if (formState.type === "Dentist" && formState.specialties.length === 0) {
+    alert("Please select at least one specialty.");
+    return;
+  }
+  if (!validatePrimaryRepField()) { document.getElementById("f_primaryRep").focus(); return; }
+  const payload = {
+    name,
+    credentials: document.getElementById("f_credentials").value.trim(),
+    type: formState.type,
+    specialties: formState.type === "Dentist" ? formState.specialties : [],
+    location: document.getElementById("f_location").value.trim(),
+    region: deriveRegion(document.getElementById("f_location").value.trim(), country),
+    country,
+    primaryRep: document.getElementById("f_primaryRep").value.trim(),
+    level: formState.level,
+    capabilities: formState.capabilities,
+    products: formState.products,
+    status: formState.status,
+    availableVirtually: formState.availableVirtually,
+    travelsNationally: formState.travelsNationally,
+    royaltiesContract: formState.royaltiesContract,
+    englishSpeaking: formState.englishSpeaking,
+    photoUrl: formState.photoUrl || "",
+    documentUrl: formState.documentUrl || "",
+    documentName: formState.documentName || "",
+    bio: document.getElementById("f_bio").value.trim(),
+    acteonActivities: document.getElementById("f_acteonActivities").value.trim(),
+    email: document.getElementById("f_email").value.trim(),
+    phone: document.getElementById("f_phone").value.trim(),
+    linkedin: document.getElementById("f_linkedin").value.trim(),
+    instagram: document.getElementById("f_instagram").value.trim(),
+    facebook: document.getElementById("f_facebook").value.trim(),
+    website: document.getElementById("f_website").value.trim(),
+  };
+  // Adding/changing a KOL to Main KOL requires sign-off; an already-approved Main KOL
+  // stays approved on unrelated edits, but a fresh Main KOL selection goes back to pending.
+  if (formState.level === "Main") {
+    const existing = editingId ? allKols.find(x => x.id === editingId) : null;
+    payload.mainKolApprovalStatus = (existing && existing.mainKolApprovalStatus === "approved") ? "approved" : "pending";
+  } else {
+    payload.mainKolApprovalStatus = "";
+  }
+  try {
+    if (editingId) {
+      await updateDoc(doc(db, "kols", editingId), payload);
+    } else {
+      payload.addedBy = currentUser ? (currentUser.displayName || currentUser.email) : "Unknown";
+      payload.createdAt = serverTimestamp();
+      await addDoc(collection(db, "kols"), payload);
+    }
+    closeModal();
+  } catch (e) {
+    alert("Couldn't save: " + e.message);
+  }
+};
+
+window.deleteKol = async (id) => {
+  const k = allKols.find(x => x.id === id);
+  if (!k) return;
+  if (!canDeleteKol(k)) { alert("You can only delete KOLs where you're listed as the Acteon Contact."); return; }
+  if (!confirm(`Remove ${k.name} from the database?`)) return;
+  try { await deleteDoc(doc(db, "kols", id)); }
+  catch (e) { alert("Couldn't delete: " + e.message); }
+};
+
+// Same "mousedown and click both on the backdrop" guard as viewModalOverlay above — prevents
+// the Acteon Contact dropdown (or anything else that hides on mousedown) from accidentally
+// closing the whole form.
+let kolOverlayMouseDownOnBackdrop = false;
+document.getElementById("kolModalOverlay").addEventListener("mousedown", (e) => {
+  kolOverlayMouseDownOnBackdrop = e.target.id === "kolModalOverlay";
+});
+document.getElementById("kolModalOverlay").addEventListener("click", (e) => {
+  if (kolOverlayMouseDownOnBackdrop && e.target.id === "kolModalOverlay") closeModal();
+  kolOverlayMouseDownOnBackdrop = false;
+});
+</script>
+</body>
+</html>
