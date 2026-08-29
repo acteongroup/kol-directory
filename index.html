@@ -165,9 +165,11 @@
   .breakdown-toggle:hover{ color:var(--navy); }
   .breakdown-toggle svg{ transition:transform .2s; }
   .breakdown-toggle.collapsed svg{ transform:rotate(-90deg); }
+  /* No max-height when open: the collapse animation is driven by an inline max-height set
+     in applyBreakdownCollapsedState(), then cleared, so tall stacks (mobile: 1 column) never clip. */
   .breakdown-row{
     display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;
-    max-height:320px; opacity:1; overflow:hidden; transition:max-height .22s ease, opacity .18s ease, margin-bottom .22s ease;
+    opacity:1; overflow:hidden; transition:max-height .22s ease, opacity .18s ease, margin-bottom .22s ease;
   }
   .breakdown-row.collapsed{ max-height:0; opacity:0; margin-bottom:0; }
   .breakdown-card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px 8px; }
@@ -1732,17 +1734,46 @@ function breakdownCardHtml(title, filterKey, items) {
 }
 
 let breakdownCollapsed = localStorage.getItem("kolBreakdownCollapsed") === "true";
+let breakdownUncapTimer = null;
 
-function applyBreakdownCollapsedState() {
-  document.getElementById("breakdownRow").classList.toggle("collapsed", breakdownCollapsed);
-  document.getElementById("breakdownToggle").classList.toggle("collapsed", breakdownCollapsed);
+// Animates the summary row open/closed by pinning an explicit max-height for the duration of
+// the transition and dropping it again once open, so the open row is always as tall as its
+// content (a fixed cap clipped the stacked cards on narrow screens).
+function applyBreakdownCollapsedState(animate) {
+  const row = document.getElementById("breakdownRow");
+  const toggle = document.getElementById("breakdownToggle");
+  if (!row || !toggle) return;
+  toggle.classList.toggle("collapsed", breakdownCollapsed);
+
+  if (!animate) {
+    row.style.transition = "none";
+    row.classList.toggle("collapsed", breakdownCollapsed);
+    row.style.maxHeight = breakdownCollapsed ? "0px" : "";
+    void row.offsetHeight;          // flush the jump so the next toggle animates
+    row.style.transition = "";
+    return;
+  }
+
+  if (breakdownCollapsed) {
+    row.style.maxHeight = row.scrollHeight + "px";
+    void row.offsetHeight;
+    row.classList.add("collapsed");
+    row.style.maxHeight = "0px";
+  } else {
+    row.classList.remove("collapsed");
+    row.style.maxHeight = row.scrollHeight + "px";
+    clearTimeout(breakdownUncapTimer);
+    // Uncap once the transition is done (timer, not transitionend, so an off-screen row
+    // that never fires the event still ends up uncapped).
+    breakdownUncapTimer = setTimeout(() => { row.style.maxHeight = ""; }, 260);
+  }
 }
 applyBreakdownCollapsedState();
 
 window.toggleBreakdownSection = () => {
   breakdownCollapsed = !breakdownCollapsed;
   localStorage.setItem("kolBreakdownCollapsed", String(breakdownCollapsed));
-  applyBreakdownCollapsedState();
+  applyBreakdownCollapsedState(true);
 };
 
 function renderBreakdowns() {
@@ -1758,6 +1789,7 @@ function renderBreakdowns() {
     breakdownCardHtml("KOLs by Region", "region", byRegion),
     breakdownCardHtml("KOLs by Country", "country", byCountry),
   ].join("");
+  if (!breakdownCollapsed) el.style.maxHeight = "";   // new content, no stale cap
 }
 
 // Sets a filter group to contain exactly one value; clicking the same stat again clears it (toggle).
