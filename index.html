@@ -1266,9 +1266,12 @@ window.doSignOut = () => signOut(auth);
 async function autoSendVerificationOnce(user) {
   const key = "verifyEmailSent_" + user.uid;
   if (sessionStorage.getItem(key)) return;
-  sessionStorage.setItem(key, "1");
   try {
     await sendEmailVerification(user);
+    // Only mark as sent once the send actually succeeds — if it fails (quota, transient
+    // error, etc.), leave the flag unset so the next time this person lands on the verify
+    // screen, it tries again automatically instead of silently giving up for the session.
+    sessionStorage.setItem(key, "1");
     document.getElementById("verifyStatus").textContent = "Verification email sent — check your inbox (and spam folder).";
   } catch (e) {
     document.getElementById("verifyError").textContent = friendlyAuthError(e);
