@@ -2114,6 +2114,29 @@ window.viewKolFromMap = (id) => {
   openViewModal(id);
 };
 
+// Clears the cached map coordinates for one KOL so the background geocoder (queueMissingGeo)
+// re-does the lookup from scratch — for cases where the pin is just wrong (a bad historical
+// geocode) rather than the location text having changed, which wouldn't otherwise re-trigger.
+window.refreshMapPin = async (id) => {
+  const btn = document.getElementById("refreshPinBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
+  try {
+    await updateDoc(doc(db, "kols", id), { geoLat: deleteField(), geoLng: deleteField(), geoSource: deleteField() });
+    if (btn) {
+      btn.textContent = "✓ Queued — check the map in a few seconds";
+      setTimeout(() => {
+        if (document.getElementById("refreshPinBtn") === btn) {
+          btn.disabled = false;
+          btn.textContent = "🔄 Refresh map pin";
+        }
+      }, 4000);
+    }
+  } catch (e) {
+    alert("Couldn't refresh map pin: " + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = "🔄 Refresh map pin"; }
+  }
+};
+
 function mapPinIcon(level) {
   const cls = level === "CAB" ? "navy" : level === "Main" ? "gold" : level === "Candidate" ? "grey" : "cyan";
   return L.divIcon({
@@ -2789,6 +2812,9 @@ function viewBodyHtml(k) {
       ${viewRow("Type", escapeHtml(k.type||""))}
       ${viewRow("Location", escapeHtml(k.location||"") + (!k.country && k.region ? ` <span style="color:#9AA8B0;">· ${escapeHtml(k.region)}</span>` : ""))}
       ${viewRow("Country", escapeHtml(k.country||""))}
+      <div class="view-row"><div class="k"></div><div class="v">
+        <button type="button" class="btn-text" id="refreshPinBtn" onclick="refreshMapPin('${k.id}')" title="Re-run map geocoding for this KOL — use this if their pin looks wrong">🔄 Refresh map pin</button>
+      </div></div>
       ${viewRow("Acteon Contact", escapeHtml(k.primaryRep||""))}
       ${viewRow("Availability", avail.join(" &nbsp;·&nbsp; "))}
       ${approvalRow}
