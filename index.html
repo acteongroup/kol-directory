@@ -2461,7 +2461,6 @@ function cardHtml(k) {
   if (k.instagram) links.push(socialIconLink("instagram", k.instagram, ' onclick="event.stopPropagation()"'));
   if (k.facebook) links.push(socialIconLink("facebook", k.facebook, ' onclick="event.stopPropagation()"'));
   if (k.email) links.push(socialIconLink("email", "mailto:" + k.email, ' onclick="event.stopPropagation()"'));
-  if (k.phone) links.push(`<span onclick="event.stopPropagation()">${escapeHtml(k.phone)}</span>`);
   if (k.documentUrl) links.push(`<a class="doc-link" href="${escapeUrl(k.documentUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 ${escapeHtml(k.documentName || "Document")}</a>`);
 
   return `
