@@ -2454,7 +2454,7 @@ function cardHtml(k) {
           ${k.travelsNationally ? `<div class="kol-loc" style="color:#0A6E8C;">✈️ Travels nationally</div>` : ""}
           ${k.englishSpeaking ? `<div class="kol-loc" style="color:#0A6E8C;">🗣️ English speaking</div>` : ""}
           ${k.royaltiesContract ? `<div class="kol-loc" style="color:#0A6E8C;">📜 Royalties contract</div>` : ""}
-          ${k.primaryRep ? `<div class="kol-loc">👤 Contact: ${escapeHtml(k.primaryRep)}</div>` : ""}
+          <div class="kol-loc">👤 Contact: ${k.primaryRep ? escapeHtml(k.primaryRep) : '<span style="color:#9AA8B0;">Unassigned</span>'}</div>
         </div>
       </div>
       ${(specTag||prodTags||capTags) ? `<div class="tag-row">${specTag}${prodTags}${capTags}</div>` : ""}
