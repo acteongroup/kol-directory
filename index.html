@@ -368,10 +368,11 @@
   }
   .kol-status-bar{
     padding:6px 16px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
-    color:#fff; display:flex; align-items:center; gap:6px;
+    color:#fff; display:flex; align-items:center; justify-content:space-between; gap:6px;
   }
   .kol-status-bar.active{ background:#2E8B57; }
   .kol-status-bar.prospective{ background:#8A97A0; }
+  .kol-status-level{ font-size:10px; font-weight:800; opacity:.95; }
   .kol-body{ padding:16px 18px 14px; flex:1; display:flex; flex-direction:column; gap:10px; }
   .kol-head{ display:flex; gap:12px; align-items:flex-start; }
   .avatar{
@@ -2465,14 +2466,17 @@ function cardHtml(k) {
 
   return `
   <div class="kol-card ${tierCardClass(k.level)}" onclick="openViewModal('${k.id}')">
-    ${k.status ? `<div class="kol-status-bar ${statusBarClass(k.status)}">${escapeHtml(k.status)}</div>` : ""}
+    ${k.status ? `<div class="kol-status-bar ${statusBarClass(k.status)}">
+      <span>${escapeHtml(k.status)}</span>
+      ${k.level ? `<span class="kol-status-level">${tierBadgeLabel(k.level)}</span>` : ""}
+    </div>` : ""}
     <div class="kol-body">
       <div class="kol-head">
         <div class="avatar">${k.photoUrl ? `<img src="${escapeUrl(k.photoUrl)}" data-fallback="${escapeHtml(initials(k.name))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" title="${escapeHtml(k.photoUrl)}" onerror="console.warn('KOL photo failed to load:', this.src); this.parentElement.innerHTML='<span title=&quot;Photo URL saved but failed to load&quot; style=&quot;cursor:help;&quot;>'+this.dataset.fallback+'</span>'" />` : initials(k.name)}</div>
         <div class="kol-head-text">
           <div class="kol-name-row">
             <span class="kol-name">${escapeHtml(k.name)}</span>
-            ${k.level ? `<span class="tier-badge ${tierBadgeClass(k.level)}">${tierBadgeLabel(k.level)}</span>` : ""}
+            ${(k.level && !k.status) ? `<span class="tier-badge ${tierBadgeClass(k.level)}">${tierBadgeLabel(k.level)}</span>` : ""}
             ${APPROVAL_LEVELS.has(k.level) && k.mainKolApprovalStatus!=='approved' ? `<span class="tag pending">Pending approval</span>` : ""}
           </div>
           <div class="kol-cred">${escapeHtml(k.credentials||"")}${k.type==='RDH' && !k.credentials ? 'RDH':''}</div>
