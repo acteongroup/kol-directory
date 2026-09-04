@@ -408,10 +408,20 @@
   .tag.pending{ background:#FBE9D0; color:#8A5A1E; }
 
 
-  .kol-links{ display:flex; flex-wrap:wrap; gap:10px; font-size:12px; margin-top:auto; padding-top:4px; }
+  .kol-links{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; margin-top:auto; padding-top:4px; }
   .kol-links a{ color:var(--cyan); text-decoration:none; display:flex; align-items:center; gap:4px; }
   .kol-links a:hover{ text-decoration:underline; }
   .kol-links span{ color:var(--ink-soft); display:flex; align-items:center; gap:4px; }
+  .social-icon{
+    display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+    border-radius:6px; color:#fff !important; font-size:10px; font-weight:800; text-decoration:none !important;
+    flex-shrink:0; line-height:1; letter-spacing:-.02em;
+  }
+  .social-icon:hover{ opacity:.85; text-decoration:none !important; }
+  .social-icon.website{ background:var(--navy); font-size:12px; }
+  .social-icon.linkedin{ background:#0A66C2; }
+  .social-icon.instagram{ background:#C13584; }
+  .social-icon.facebook{ background:#1877F2; }
 
   .kol-footer{
     border-top:1px solid var(--line); padding:9px 14px; display:flex; justify-content:space-between; align-items:center;
@@ -2427,6 +2437,14 @@ function tierBadgeLabel(level) {
   return level === "CAB" ? "👑 CAB" : escapeHtml(level);
 }
 
+// Compact colored icon badge for Website/LinkedIn/Instagram/Facebook links — used on both
+// the card and the detail view so a KOL's links read at a glance instead of as text labels.
+function socialIconLink(type, url, onclickAttr) {
+  const glyphs = { website:"🌐", linkedin:"in", instagram:"IG", facebook:"f" };
+  const labels = { website:"Website", linkedin:"LinkedIn", instagram:"Instagram", facebook:"Facebook" };
+  return `<a class="social-icon ${type}" href="${escapeUrl(url)}" target="_blank" rel="noopener" title="${labels[type]}"${onclickAttr||""}>${glyphs[type]}</a>`;
+}
+
 function initials(name) {
   return (name||"?").replace(/^Dr\.?\s*/i,"").split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 }
@@ -2437,10 +2455,10 @@ function cardHtml(k) {
   const prodTags = (k.products||[]).map(p => `<span class="tag prod">${escapeHtml(p)}</span>`).join("");
   const specTag = getSpecialties(k).map(s => `<span class="tag spec">${escapeHtml(s)}</span>`).join("");
   const links = [];
-  if (k.website) links.push(`<a href="${escapeUrl(k.website)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Website</a>`);
-  if (k.linkedin) links.push(`<a href="${escapeUrl(k.linkedin)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">LinkedIn</a>`);
-  if (k.instagram) links.push(`<a href="${escapeUrl(k.instagram)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Instagram</a>`);
-  if (k.facebook) links.push(`<a href="${escapeUrl(k.facebook)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Facebook</a>`);
+  if (k.website) links.push(socialIconLink("website", k.website, ' onclick="event.stopPropagation()"'));
+  if (k.linkedin) links.push(socialIconLink("linkedin", k.linkedin, ' onclick="event.stopPropagation()"'));
+  if (k.instagram) links.push(socialIconLink("instagram", k.instagram, ' onclick="event.stopPropagation()"'));
+  if (k.facebook) links.push(socialIconLink("facebook", k.facebook, ' onclick="event.stopPropagation()"'));
   if (k.email) links.push(`<span onclick="event.stopPropagation()">${escapeHtml(k.email)}</span>`);
   if (k.phone) links.push(`<span onclick="event.stopPropagation()">${escapeHtml(k.phone)}</span>`);
   if (k.documentUrl) links.push(`<a class="doc-link" href="${escapeUrl(k.documentUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 ${escapeHtml(k.documentName || "Document")}</a>`);
@@ -2785,6 +2803,11 @@ function viewRow(label, value) {
   if (!value) return "";
   return `<div class="view-row"><div class="k">${escapeHtml(label)}</div><div class="v">${value}</div></div>`;
 }
+// Like viewRow, but the label is a small icon badge (e.g. socialIconLink) instead of escaped text.
+function viewRowIcon(iconHtml, value) {
+  if (!value) return "";
+  return `<div class="view-row"><div class="k">${iconHtml}</div><div class="v">${value}</div></div>`;
+}
 
 function viewBodyHtml(k) {
   const caps = k.capabilities || {};
@@ -2832,10 +2855,10 @@ function viewBodyHtml(k) {
       ${approvalRow}
       ${viewRow("Email", k.email ? `<a href="mailto:${encodeURIComponent(k.email).replace(/%40/g,'@')}">${escapeHtml(k.email)}</a>` : "")}
       ${viewRow("Phone", k.phone ? `<a href="tel:${escapeHtml(k.phone.replace(/[^\d+]/g,''))}">${escapeHtml(k.phone)}</a>` : "")}
-      ${viewRow("Website", k.website ? `<a href="${escapeUrl(k.website)}" target="_blank" rel="noopener">${escapeHtml(k.website)}</a>` : "")}
-      ${viewRow("LinkedIn", k.linkedin ? `<a href="${escapeUrl(k.linkedin)}" target="_blank" rel="noopener">${escapeHtml(k.linkedin)}</a>` : "")}
-      ${viewRow("Instagram", k.instagram ? `<a href="${escapeUrl(k.instagram)}" target="_blank" rel="noopener">${escapeHtml(k.instagram)}</a>` : "")}
-      ${viewRow("Facebook", k.facebook ? `<a href="${escapeUrl(k.facebook)}" target="_blank" rel="noopener">${escapeHtml(k.facebook)}</a>` : "")}
+      ${k.website ? viewRowIcon(socialIconLink("website", k.website), `<a href="${escapeUrl(k.website)}" target="_blank" rel="noopener">${escapeHtml(k.website)}</a>`) : ""}
+      ${k.linkedin ? viewRowIcon(socialIconLink("linkedin", k.linkedin), `<a href="${escapeUrl(k.linkedin)}" target="_blank" rel="noopener">${escapeHtml(k.linkedin)}</a>`) : ""}
+      ${k.instagram ? viewRowIcon(socialIconLink("instagram", k.instagram), `<a href="${escapeUrl(k.instagram)}" target="_blank" rel="noopener">${escapeHtml(k.instagram)}</a>`) : ""}
+      ${k.facebook ? viewRowIcon(socialIconLink("facebook", k.facebook), `<a href="${escapeUrl(k.facebook)}" target="_blank" rel="noopener">${escapeHtml(k.facebook)}</a>`) : ""}
     </div>
     ${k.bio ? `<div class="section-label">Bio</div><div class="view-bio">${escapeHtml(k.bio)}</div>` : ""}
     ${k.documentUrl ? `<div class="doc-chip" style="margin-top:8px;"><a class="doc-link" href="${escapeUrl(k.documentUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">📎 ${escapeHtml(k.documentName || "Attached document")}</a></div>` : ""}
