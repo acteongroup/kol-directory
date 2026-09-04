@@ -390,7 +390,15 @@
   .tier-badge.cab{ background:var(--navy); color:var(--gold); }
   .kol-cred{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
   .kol-loc{ font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:4px; margin-top:2px; }
+  .kol-contact-chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--cyan-dim); color:#046484;
+    border-radius:7px; padding:5px 10px; font-size:12px; font-weight:600; margin-top:4px; align-self:flex-start;
+    max-width:100%;
+  }
+  .kol-contact-chip.unassigned{ background:#EEF2F4; color:var(--ink-soft); }
+  .kol-contact-icon{ width:13px; height:13px; object-fit:contain; flex-shrink:0; }
   .kol-contact-name{ color:var(--navy); font-weight:700; }
+  .kol-contact-chip.unassigned .kol-contact-name{ color:var(--ink-soft); font-weight:600; font-style:italic; }
 
   .tag-row{ display:flex; flex-wrap:wrap; gap:5px; }
   .tag{ font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:6px; background:#EEF2F4; color:var(--ink-soft); }
@@ -2450,12 +2458,15 @@ function cardHtml(k) {
             ${APPROVAL_LEVELS.has(k.level) && k.mainKolApprovalStatus!=='approved' ? `<span class="tag pending">Pending approval</span>` : ""}
           </div>
           <div class="kol-cred">${escapeHtml(k.credentials||"")}${k.type==='RDH' && !k.credentials ? 'RDH':''}</div>
+          <div class="kol-contact-chip ${k.primaryRep ? '' : 'unassigned'}">
+            <img src="ACTEON-MARK-ONLY.png" alt="" class="kol-contact-icon" />
+            Acteon Contact: ${k.primaryRep ? `<span class="kol-contact-name">${escapeHtml(k.primaryRep)}</span>` : '<span class="kol-contact-name">Unassigned</span>'}
+          </div>
           ${(k.location || k.country) ? `<div class="kol-loc">📍 ${[k.location, k.country].filter(Boolean).map(v=>escapeHtml(v)).join(", ")}${(!k.country && k.region) ? ` <span style="color:#9AA8B0;">· ${escapeHtml(k.region)}</span>` : ""}</div>` : ""}
           ${k.availableVirtually ? `<div class="kol-loc" style="color:#0A6E8C;">💻 Available virtually</div>` : ""}
           ${k.travelsNationally ? `<div class="kol-loc" style="color:#0A6E8C;">✈️ Travels nationally</div>` : ""}
           ${k.englishSpeaking ? `<div class="kol-loc" style="color:#0A6E8C;">🗣️ English speaking</div>` : ""}
           ${k.royaltiesContract ? `<div class="kol-loc" style="color:#0A6E8C;">📜 Royalties contract</div>` : ""}
-          <div class="kol-loc">👤 Contact: ${k.primaryRep ? `<span class="kol-contact-name">${escapeHtml(k.primaryRep)}</span>` : '<span style="color:#9AA8B0;font-style:italic;">Unassigned</span>'}</div>
         </div>
       </div>
       ${(specTag||prodTags||capTags) ? `<div class="tag-row">${specTag}${prodTags}${capTags}</div>` : ""}
