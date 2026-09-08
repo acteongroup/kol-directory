@@ -426,10 +426,9 @@
   .social-icon.email{ background:var(--ink-soft); font-size:12px; }
 
   .kol-footer{
-    border-top:1px solid var(--line); padding:9px 14px; display:flex; justify-content:space-between; align-items:center;
+    border-top:1px solid var(--line); padding:9px 14px; display:flex; justify-content:flex-end; align-items:center;
     background:#fbfcfc;
   }
-  .kol-footer .added-by{ font-size:10.5px; color:#9AA8B0; }
   .icon-btn{
     background:none; border:none; cursor:pointer; color:var(--ink-soft); padding:5px; border-radius:6px;
     display:flex; align-items:center; justify-content:center;
@@ -2502,14 +2501,13 @@ function cardHtml(k) {
       ${(specTag||prodTags||capTags) ? `<div class="tag-row">${specTag}${prodTags}${capTags}</div>` : ""}
       ${links.length ? `<div class="kol-links">${links.join("")}</div>` : ""}
     </div>
-    <div class="kol-footer">
-      <span class="added-by">${k.addedBy ? 'Added by '+escapeHtml(k.addedBy) : ''}</span>
+    ${canDeleteKol(k) ? `<div class="kol-footer">
       <div>
-        ${canDeleteKol(k) ? `<button class="icon-btn danger" title="Delete" onclick="event.stopPropagation(); deleteKol('${k.id}')">
+        <button class="icon-btn danger" title="Delete" onclick="event.stopPropagation(); deleteKol('${k.id}')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
-        </button>` : ""}
+        </button>
       </div>
-    </div>
+    </div>` : ""}
   </div>`;
 }
 
