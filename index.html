@@ -733,6 +733,9 @@ service cloud.firestore {
         <button class="dropdown-trigger" id="myKolsToggle" onclick="toggleMyKols()" title="Show only KOLs where you're the Acteon Contact">
           <span>👤 My KOLs</span>
         </button>
+        <button class="dropdown-trigger" id="unassignedToggle" onclick="setSingleFilter('primaryRep','')" title="Show KOLs with no Acteon Contact assigned">
+          <span>⚠️ Unassigned</span>
+        </button>
       </div>
       <div class="active-chips" id="activeChips"></div>
       <div class="toolbar-footer">
@@ -1900,7 +1903,7 @@ function renderActiveChips() {
   if (!chips.length) { el.innerHTML = ""; return; }
   el.innerHTML = chips.map(c => `
     <span class="active-chip">
-      ${escapeHtml(c.val)}
+      ${c.key === "primaryRep" && c.val === "" ? "Unassigned" : escapeHtml(c.val)}
       <button onclick="toggleFilter('${c.key}','${jsAttr(c.val)}')" title="Remove filter">✕</button>
     </span>
   `).join("");
@@ -1938,6 +1941,11 @@ function renderMyKolsToggleState() {
   const match = currentUser && matchEmployeeByEmail(currentUser.email);
   const active = !!match && activeFilters.primaryRep.size === 1 && activeFilters.primaryRep.has(match.name);
   btn.classList.toggle("has-selection", active);
+
+  const unassignedBtn = document.getElementById("unassignedToggle");
+  if (unassignedBtn) {
+    unassignedBtn.classList.toggle("has-selection", activeFilters.primaryRep.size === 1 && activeFilters.primaryRep.has(""));
+  }
 }
 
 window.toggleMyKols = () => {
@@ -1975,7 +1983,7 @@ function matchesFilters(k) {
   const f = activeFilters;
   if (f.type.size && !f.type.has(k.type)) return false;
   if (f.level.size && !f.level.has(k.level)) return false;
-  if (f.primaryRep.size && !f.primaryRep.has(k.primaryRep)) return false;
+  if (f.primaryRep.size && !f.primaryRep.has(k.primaryRep || "")) return false;
   if (f.region.size && !f.region.has(k.region)) return false;
   if (f.country.size && !f.country.has(k.country)) return false;
   if (f.mainKolApprovalStatus.size && !f.mainKolApprovalStatus.has(k.mainKolApprovalStatus)) return false;
