@@ -1094,12 +1094,13 @@ const CAPABILITIES = [
   { key:"webinars",    label:"Webinars" },
   { key:"social",      label:"Social content" },
   { key:"consult",     label:"Consult on R&D" },
+  { key:"ergonomics",  label:"Ergonomics" },
 ];
 const LEVEL_DEFAULTS = {
-  "CAB":            { training:true,  productRef:true,  webinars:true,  social:true,  consult:true },
-  "Main":           { training:true,  productRef:true,  webinars:true,  social:true,  consult:true },
-  "Local Advocate": { training:false, productRef:true,  webinars:true,  social:true,  consult:false },
-  "Candidate": { training:false, productRef:false, webinars:false, social:false, consult:false },
+  "CAB":            { training:true,  productRef:true,  webinars:true,  social:true,  consult:true,  ergonomics:false },
+  "Main":           { training:true,  productRef:true,  webinars:true,  social:true,  consult:true,  ergonomics:false },
+  "Local Advocate": { training:false, productRef:true,  webinars:true,  social:true,  consult:false, ergonomics:false },
+  "Candidate": { training:false, productRef:false, webinars:false, social:false, consult:false, ergonomics:false },
 };
 
 /* ---------------------------- Region auto-detection ---------------------------- */
