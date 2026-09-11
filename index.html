@@ -401,6 +401,11 @@
   .kol-contact-name{ color:var(--navy); font-weight:700; }
   .kol-contact-chip.unassigned .kol-contact-name{ color:var(--ink-soft); font-weight:600; font-style:italic; }
 
+  .specialty-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .specialty-pill{
+    font-size:12.5px; font-weight:800; padding:5px 12px; border-radius:8px;
+    background:var(--cyan-dim); color:#046484; letter-spacing:.01em;
+  }
   .tag-row{ display:flex; flex-wrap:wrap; gap:5px; }
   .tag{ font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:6px; background:#EEF2F4; color:var(--ink-soft); }
   .tag.spec{ background:#EAF6FB; color:#0A6E8C; }
@@ -2477,7 +2482,7 @@ function cardHtml(k) {
   const caps = k.capabilities || {};
   const capTags = CAPABILITIES.filter(c => caps[c.key]).map(c => `<span class="tag cap">${c.label}</span>`).join("");
   const prodTags = (k.products||[]).map(p => `<span class="tag prod">${escapeHtml(p)}</span>`).join("");
-  const specTag = getSpecialties(k).map(s => `<span class="tag spec">${escapeHtml(s)}</span>`).join("");
+  const specTag = getSpecialties(k).map(s => `<span class="specialty-pill">${escapeHtml(s)}</span>`).join("");
   const links = [];
   if (k.website) links.push(socialIconLink("website", k.website, ' onclick="event.stopPropagation()"'));
   if (k.linkedin) links.push(socialIconLink("linkedin", k.linkedin, ' onclick="event.stopPropagation()"'));
@@ -2513,7 +2518,8 @@ function cardHtml(k) {
           ${k.royaltiesContract ? `<div class="kol-loc" style="color:#0A6E8C;">📜 Royalties contract</div>` : ""}
         </div>
       </div>
-      ${(specTag||prodTags||capTags) ? `<div class="tag-row">${specTag}${prodTags}${capTags}</div>` : ""}
+      ${specTag ? `<div class="specialty-row">${specTag}</div>` : ""}
+      ${(prodTags||capTags) ? `<div class="tag-row">${prodTags}${capTags}</div>` : ""}
       ${links.length ? `<div class="kol-links">${links.join("")}</div>` : ""}
     </div>
     <div class="kol-footer">
@@ -2841,7 +2847,7 @@ function viewBodyHtml(k) {
   const caps = k.capabilities || {};
   const capTags = CAPABILITIES.filter(c => caps[c.key]).map(c => `<span class="tag cap">${c.label}</span>`).join("");
   const prodTags = (k.products||[]).map(p => `<span class="tag prod">${escapeHtml(p)}</span>`).join("");
-  const specTag = getSpecialties(k).map(s => `<span class="tag spec">${escapeHtml(s)}</span>`).join("");
+  const specTag = getSpecialties(k).map(s => `<span class="specialty-pill">${escapeHtml(s)}</span>`).join("");
   const avail = [];
   if (k.availableVirtually) avail.push("💻 Available virtually");
   if (k.travelsNationally) avail.push("✈️ Travels nationally");
@@ -2870,7 +2876,8 @@ function viewBodyHtml(k) {
         </div>
       </div>
     </div>
-    ${(specTag||prodTags||capTags) ? `<div class="tag-row" style="margin-top:14px;">${specTag}${prodTags}${capTags}</div>` : ""}
+    ${specTag ? `<div class="specialty-row" style="margin-top:14px;">${specTag}</div>` : ""}
+    ${(prodTags||capTags) ? `<div class="tag-row" style="margin-top:${specTag ? "8" : "14"}px;">${prodTags}${capTags}</div>` : ""}
     <div style="margin-top:14px;">
       ${viewRow("Type", escapeHtml(k.type||""))}
       ${viewRow("Location", escapeHtml(k.location||"") + (!k.country && k.region ? ` <span style="color:#9AA8B0;">· ${escapeHtml(k.region)}</span>` : ""))}
