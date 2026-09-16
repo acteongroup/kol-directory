@@ -2072,6 +2072,7 @@ window.exportFilteredExcel = async () => {
       "Bio": k.bio || "",
       "Acteon Activities": k.acteonActivities || "",
       "Document": k.documentUrl ? (k.documentUrl.startsWith("data:") ? `Attached: ${k.documentName || "file"}` : k.documentUrl) : "",
+      "Photo URL": k.photoUrl || "",
       "Email": k.email || "",
       "Phone": k.phone || "",
       "LinkedIn": k.linkedin || "",
